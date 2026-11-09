@@ -1,4 +1,4 @@
-# recon-spec-store
+# recon-spec-store-kit
 
 **Runbook + templates + tooling for reconstructing behavior specs of public
 git repositories into isolated OpenSpec stores.**
@@ -17,7 +17,7 @@ next pass can resume exactly where this pass stopped.
 ## What lives where
 
 ```
-recon-spec-store/                  <- THIS repo: process IP only
+recon-spec-store-kit/              <- THIS repo: process IP only
   README.md                        <- you are here
   RUNBOOK.md                       <- the operator runbook, pass by pass
   LICENSE                          <- MIT (this repo's content)
