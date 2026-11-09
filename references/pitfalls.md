@@ -71,6 +71,18 @@ Abstracted war stories. Each entry is phrased as the rule it taught.
 - **Milestone messages to the owner: paste proof, not claims** — e.g. for
   API sends, the raw response containing the success flag.
 
+## Markdown rendering (GitHub)
+
+- **Raw `<placeholder>` tokens are HTML, not text.** `<S>` renders as a
+  LIVE strikethrough that runs unclosed through everything below it; `<U>`
+  underlines; unknown tags (`<D>`, `<slug>`, `<cap>`) are silently stripped
+  — the rendered page loses them. Wrap every placeholder in backticks
+  in .md files.
+- **Inline code spans cannot cross a newline** — a backtick pair split
+  across lines renders literal backticks and re-exposes any placeholder
+  inside. Keep code spans line-local; use fenced blocks for multi-line
+  shapes.
+
 ## Retirement
 
 - `git remote -v` before anything else: a local-only store git makes `rm`

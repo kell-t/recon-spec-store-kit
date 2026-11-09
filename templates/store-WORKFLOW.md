@@ -1,10 +1,10 @@
-# WORKFLOW.md — <slug> store policy (repo-local)
+# WORKFLOW.md — `<slug>` store policy (repo-local)
 
-Store for github.com/<org>/<repo> (<license>). Cross-repo policy lives in the
+Store for github.com/`<org>`/`<repo>` (`<license>`). Cross-repo policy lives in the
 cluster WORKFLOW.md; this file is repo-local and more specific.
 
 ## Pin
-- Current: `<branch> @ <full-sha>` (tag <tag>, <date>) — also in
+- Current: `<branch> @ <full-sha>` (tag `<tag>`, `<date>`) — also in
   `recon/RECON_LEDGER.md` PINS and `recon/baseline.txt`.
 - Validation and drift analysis start at the pin and run forward until the
   pin moves.
@@ -13,7 +13,7 @@ cluster WORKFLOW.md; this file is repo-local and more specific.
 
 ## License tiers (see kit LICENSE-TIERING.md)
 - `recon/LICENSE` = MIT (process IP).
-- `openspec/LICENSE` = <source license>, copied from the source repo at the
+- `openspec/LICENSE` = `<source license>`, copied from the source repo at the
   pin; re-copy on every pin move; relicensing upstream = ledger finding.
 
 ## Boundary
@@ -38,7 +38,7 @@ cluster WORKFLOW.md; this file is repo-local and more specific.
 
 ## Validation
 - `openspec validate --all --strict --store <slug>` must be green at every
-  milestone commit (expect <N> specs).
+  milestone commit (expect `<N>` specs).
 - Fix drafts and re-convert; never hand-edit `openspec/specs/**`.
 - Gate: `python3 recon/scripts/gate.py` green between waves and before
   commits.

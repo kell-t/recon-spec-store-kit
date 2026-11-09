@@ -55,10 +55,10 @@ first pass: create it from the Phase-0 scope decision.
 ## Phase 1 — Mine evidence (cheap, mechanical)
 
 Sources, in priority order:
-1. **PR-landed commits (PR-ref-rich repos):** `git log --no-merges
-   --format=%H|%ad|%s --date=short`, filter `(#NNNN)$`. Parse
-   conventional-commit type(scope). Save JSON: `{sha, date, pr, subject,
-   type, scope}`.
+1. **PR-landed commits (PR-ref-rich repos):**
+   `git log --no-merges --format=%H|%ad|%s --date=short`, filter `(#NNNN)$`.
+   Parse conventional-commit type(scope). Save JSON
+   `{sha, date, pr, subject, type, scope}`.
 2. **Full log (ref-free repos):** same extraction without the filter;
    history is intent-provenance only — cite `[commit <12-hex>]`, evidence
    comes from docs + tests + pin code.

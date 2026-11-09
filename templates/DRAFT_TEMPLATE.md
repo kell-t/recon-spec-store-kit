@@ -1,11 +1,11 @@
 # Capability Spec Draft Template (OpenSpec-flavored)
 
-<!-- STORE SETUP: replace <REPO>, <org/repo>, <LICENSE>, <sha>, <dates> and
+<!-- STORE SETUP: replace `<REPO>`, `<org/repo>`, `<LICENSE>`, `<sha>`, `<dates>` and
      the example citation URL before briefing drafting agents. Re-anchor any
      example paths to THIS repo's layout. -->
 
-You are reconstructing a capability spec for <REPO>
-(https://github.com/<org>/<repo>, <LICENSE>) from evidence. Output ONE file
+You are reconstructing a capability spec for `<REPO>`
+(https://github.com/`<org>`/`<repo>`, `<LICENSE>`) from evidence. Output ONE file
 in this exact shape. Rules at the end are binding.
 
 ```markdown

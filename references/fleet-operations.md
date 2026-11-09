@@ -25,10 +25,16 @@ For drafting/verification passes run with delegated agent fleets
 - If two kinds of edit target one file (anchor-verify vs scenario-grounding),
   put them in DIFFERENT waves — same-file writers never run concurrently.
 - Anchor-VERIFY waves run better with children NOT editing drafts at all:
-  each child writes only a verdict JSON — one entry per requirement
-  `{title, verdict: VERIFIED|INFERRED (enum in the output schema), anchors
-  ["file:line (hint)"], reason (required for INFERRED: where searched, what
-  was found), files_opened ["path:line"]}`. The parent applies
+  each child writes only a verdict JSON — one entry per requirement:
+
+  ```
+  {title, verdict: VERIFIED|INFERRED (enum in the output schema),
+   anchors ["file:line (hint)"],
+   reason (required for INFERRED: where searched, what was found),
+   files_opened ["path:line"]}
+  ```
+
+  The parent applies
   Status/Anchor lines itself, then runs the gate. Per-claim attribution
   beats merged child edits.
 - The child brief must be fully self-contained: store root, pin SHA + tag,

@@ -55,17 +55,17 @@
 ## Repo registry
 | Store id | Path | Source repo | License | Boundary |
 |---|---|---|---|---|
-| `<slug>` | `github/<org>/<repo>` | github.com/<org>/<repo> | <read from LICENSE> | isolated |
+| `<slug>` | `github/<org>/<repo>` | github.com/`<org>`/`<repo>` | `<read from LICENSE>` | isolated |
 
 **Retired stores** (moved out of `github/` to the retirement hold; may be
 revisited only as fresh recons — archived drafts are non-current):
-- <slug> — RETIRED <date>, <reason>, hold path.
+- `<slug>` — RETIRED `<date>`, `<reason>`, hold path.
 
 ## Approvals (explicit owner cross-repo permissions)
 - (none yet)
 
 ## Upstream-report dispositions
-- <finding> — <filed | PARKED as Known-gaps only, owner ruling + date>.
+- `<finding>` — `<filed | PARKED as Known-gaps only, owner ruling + date>`.
   External posting always requires a fresh per-instance approval.
 
 ## Validation (per store — never a combined command, to preserve boundaries)
@@ -86,5 +86,6 @@ then staleness. Append one decision line per run to PRIORITY_LOG.md.
 ## Retirement
 Check `git remote -v` FIRST (local-only store gits make `rm` unrecoverable) →
 MOVE the store dir to the retirement hold → drop the registry row, add a
-Retired entry (reason, hold path, resume rule) → confirm `openspec store
-list` has no stale id → re-validate remaining stores → commit the container.
+Retired entry (reason, hold path, resume rule) → confirm
+`openspec store list` has no stale id → re-validate remaining stores →
+commit the container.
