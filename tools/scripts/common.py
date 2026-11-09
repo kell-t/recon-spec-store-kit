@@ -160,5 +160,13 @@ def relnote_bodies(cfg):
 
 def verified_numbers():
     """{number: {...}} allowlist of API-verified GitHub numbers
-    (issue-or-PR kind verified via GET /repos/<org>/<repo>/issues/NNNN)."""
-    return corpus("verified_numbers.json", {}) or {}
+    (issue-or-PR kind verified via GET /repos/<org>/<repo>/issues/NNNN).
+    Accepts the canonical verified_numbers.json or a legacy
+    verified_prs.json ({number: title} shape)."""
+    vn = corpus("verified_numbers.json")
+    if vn:
+        return vn
+    legacy = corpus("verified_prs.json", {})
+    return {k: (v if isinstance(v, dict) else
+                {"kind": "migrated", "title": str(v)})
+            for k, v in legacy.items()}
