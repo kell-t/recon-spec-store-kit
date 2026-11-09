@@ -18,7 +18,7 @@ Every scenario clause must be traceable to a HUMAN-WRITTEN SOURCE:
   release bodies in `evidence/releases.json`) text describing the trigger
   and outcome.
 - **Tier B (accepted): repo documentation** — the store's evidence docs copy
-  (`evidence/docs/**`) at the pin: <list this repo's normative docs> — text
+  (`evidence/docs/**`) at the pin: `<list this repo's normative docs>` — text
   describing the trigger and outcome.
 - **Tier C (accepted): tests at the pin** — test names / test asserts in the
   pin's test tree (inventory in `evidence/tests_inventory.txt`). A test name

@@ -26,8 +26,8 @@ Conventions used below:
   print it. Check `GET /rate_limit` before any API-heavy phase; prefer
   `git log` over API calls.
 - Store registration is **machine-local** (the CLI registry is not in git).
-  On a fresh host or after moving folders: `openspec store register <path>
-  --id <slug> --yes` before any `--store` command.
+  On a fresh host or after moving folders:
+  `openspec store register <path> --id <slug> --yes` before any `--store` command.
 
 ## 1. Bootstrap a store (new repo)
 
@@ -148,9 +148,13 @@ requirements, extend evidence to the pin's tail.
    pin.
 2. **Verification waves**: children do NOT edit drafts. Each child returns a
    verdict JSON, one entry per requirement:
-   `{title, verdict: VERIFIED|INFERRED, anchors: ["file:line (hint)"],
-     reason (required for INFERRED: where searched, what was found),
-     files_opened: ["path:line"]}`
+
+   ```
+   {title, verdict: VERIFIED|INFERRED, anchors: ["file:line (hint)"],
+    reason (required for INFERRED: where searched, what was found),
+    files_opened: ["path:line"]}
+   ```
+
    The parent applies Status/Anchor lines itself (block-bound edit rules in
    `references/fleet-operations.md`), then runs the gate.
 3. **Removal-check law**: a requirement backed only by a historical PR may

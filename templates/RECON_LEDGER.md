@@ -1,30 +1,30 @@
-# RECON_LEDGER — <slug>
+# RECON_LEDGER — `<slug>`
 
 Store: `<path>` (id `<slug>`). Boot order: PLAYBOOK.md → repo_config.yaml →
 this file. This ledger is the store's state machine: every pass rewrites
 CURRENT STATE and NEXT-PASS; history sections are append-only.
 
-## CURRENT STATE (<pass N> complete, <date>)
+## CURRENT STATE (`<pass N>` complete, `<date>`)
 
-- Baseline pin: `<branch> @ <full-sha>` (tag **<tag>**, <date>).
-  `recon/baseline.txt`. <moved? from what? why>
+- Baseline pin: `<branch> @ <full-sha>` (tag **`<tag>`**, `<date>`).
+  `recon/baseline.txt`. `<moved? from what? why>`
 - Validation: `openspec validate --all --strict --store <slug>` →
-  **Totals: <N> passed, 0 failed** (openspec <ver>), GREEN at every pass-N commit.
-- Fleet: **<R> requirements**, **<V> VERIFIED (<pct>%)**, <I> INFERRED,
-  <U> UNVERIFIED-as-spec (must be 0).
-- Scenario debt: **<D>** requirements carry derived (non-evidence) scenarios;
-  **<S> evidence-backed scenarios**. Residual debt reasons live in per-file
+  **Totals: `<N>` passed, 0 failed** (openspec `<ver>`), GREEN at every pass-N commit.
+- Fleet: **`<R>` requirements**, **`<V>` VERIFIED (`<pct>`%)**, `<I>` INFERRED,
+  `<U>` UNVERIFIED-as-spec (must be 0).
+- Scenario debt: **`<D>`** requirements carry derived (non-evidence) scenarios;
+  **`<S>` evidence-backed scenarios**. Residual debt reasons live in per-file
   Scenario-ification notes.
 - Audit gate: `recon/scripts/gate.py` — <one-line inventory of active
   checks>. MANDATORY between every wave completion and every commit.
-- License tiers: `recon/LICENSE` MIT; `openspec/LICENSE` = <source license>
-  (copied at pin <sha>).
+- License tiers: `recon/LICENSE` MIT; `openspec/LICENSE` = `<source license>`
+  (copied at pin `<sha>`).
 
 ### Coverage table (scripted tally of specs_draft/, pass N — never hand-counted)
 
 | Capability | Reqs | VERIFIED | INFERRED | Grounded scenarios | Scenario debt |
 |---|---|---|---|---|---|
-| <cap> | | | | | |
+| `<cap>` | | | | | |
 | **TOTAL** | | | | | |
 
 Pass-N audit summary: <what the gate + spot-checks caught and fixed, in
@@ -37,8 +37,8 @@ Entries: `G-NN <title> [OPEN|CLOSED]` — evidence, what would close it, who
 decided. Closed entries keep their closing evidence (they are the audit
 trail of the pass that closed them).
 
-- G-01 <title> [OPEN] — <state, blocking condition>
-- G-02 <title> [CLOSED pass N] — <how, evidence>
+- G-01 `<title>` [OPEN] — `<state, blocking condition>`
+- G-02 `<title>` [CLOSED pass N] — `<how, evidence>`
 
 ## Drift register
 
@@ -52,17 +52,17 @@ upstream, license/pin-move findings.
 
 | Date | Pin sha | Tag | Branch | Reason |
 |---|---|---|---|---|
-| <date> | <full-sha> | <tag> | <branch> | initial pass / re-pin / drift correction |
+| `<date>` | `<full-sha>` | `<tag>` | `<branch>` | initial pass / re-pin / drift correction |
 
 ## Pass history
 
-- **Pass 1 (<date>):** scope decision executed; <R> reqs drafted in <W>
-  waves; <%> VERIFIED; conversion green; gaps G-01..G-0n opened.
-- **Pass 2 (<date>):** anchor verification; tail mining; VERIFIED <a%>→<b%>;
-  <n> dead requirements removed (removal-check law); <n> cites fabricated
+- **Pass 1 (`<date>`):** scope decision executed; `<R>` reqs drafted in `<W>`
+  waves; `<%>` VERIFIED; conversion green; gaps G-01..G-0n opened.
+- **Pass 2 (`<date>`):** anchor verification; tail mining; VERIFIED `<a%>`→`<b%>`;
+  `<n>` dead requirements removed (removal-check law); `<n>` cites fabricated
   and fixed.
-- **Pass 3 (<date>):** scenario grounding; +<S> grounded; debt <D>;
-  <findings>.
+- **Pass 3 (`<date>`):** scenario grounding; +`<S>` grounded; debt `<D>`;
+  `<findings>`.
 
 ## NEXT-PASS (the mission the next session executes)
 

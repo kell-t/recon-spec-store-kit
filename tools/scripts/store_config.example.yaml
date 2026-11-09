@@ -17,6 +17,7 @@ capabilities:
     subject_regex: 'api|endpoint|handler|request'
     scopes: [api, core]
     code: [src/api/]
+    # tail_subject_regex: optional tightened fallback for mine_tail.py only
   cli-interface:
     subject_regex: '\bcli\b|command|flag|repl'
     scopes: [cli]

@@ -55,11 +55,14 @@ def load_config():
         try:
             import yaml  # type: ignore
             user = yaml.safe_load(open(path)) or {}
+            return _deep_merge(cfg, user)
         except ImportError:
+            jpath = os.path.join(SCRIPTS_DIR, "store_config.json")
+            if os.path.exists(jpath):
+                return _deep_merge(cfg, json.load(open(jpath)))
             raise SystemExit(
-                "store_config.yaml needs PyYAML (pip install pyyaml), or "
-                "write store_config.json instead (this loader accepts JSON).")
-        cfg = _deep_merge(cfg, user)
+                "store_config.yaml present but PyYAML is not installed; "
+                "pip install pyyaml, or keep a store_config.json twin.")
     else:
         jpath = os.path.join(SCRIPTS_DIR, "store_config.json")
         if os.path.exists(jpath):
@@ -140,7 +143,9 @@ class PinTree:
 
 def relnote_bodies(cfg):
     """Release-note corpus, dual-mode: per-version relnote_<ver>.txt files,
-    or releases.json (GitHub API). Returns {version-tag: body}."""
+    or releases.json (GitHub API). Returns {version-tag: body}, including
+    name-carried aliases (tag may be date-based while the release NAME
+    carries the semver, e.g. tag v2026.3.30 ships "v0.6.0")."""
     bodies = {}
     for p in os.listdir(EV) if os.path.isdir(EV) else []:
         if p.startswith("relnote_") and p.endswith(".txt"):
@@ -150,15 +155,23 @@ def relnote_bodies(cfg):
     if rels:
         by_tag = {r["tag"]: r.get("body", "") for r in rels}
         bodies.update(by_tag)
-        # dual identity: tag may be date-based while NAME carries the semver
         for r in rels:
             for v in re.findall(r"v?\d+\.\d+\.\d+", r.get("name", "")):
                 key = v if v.startswith("v") else "v" + v
                 bodies.setdefault(key, by_tag[r["tag"]])
+                bodies.setdefault(r["tag"] + " (" + key + ")", by_tag[r["tag"]])
     return bodies
 
 
 def verified_numbers():
     """{number: {...}} allowlist of API-verified GitHub numbers
-    (issue-or-PR kind verified via GET /repos/<org>/<repo>/issues/NNNN)."""
-    return corpus("verified_numbers.json", {}) or {}
+    (issue-or-PR kind verified via GET /repos/<org>/<repo>/issues/NNNN).
+    Accepts the canonical verified_numbers.json or a legacy
+    verified_prs.json ({number: title} shape)."""
+    vn = corpus("verified_numbers.json")
+    if vn:
+        return vn
+    legacy = corpus("verified_prs.json", {})
+    return {k: (v if isinstance(v, dict) else
+                {"kind": "migrated", "title": str(v)})
+            for k, v in legacy.items()}

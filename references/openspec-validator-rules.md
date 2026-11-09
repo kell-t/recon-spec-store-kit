@@ -60,8 +60,8 @@ committing (children's self-reported property-style counts are hypotheses).
 
 - Fix the DRAFT, re-convert. Never hand-edit `openspec/specs/**` — the next
   conversion silently erases the edit and you lose the audit trail.
-- Validation runs per store: `openspec validate --all --strict --store
-  <slug>`, and stays green at every milestone commit.
+- Validation runs per store: `openspec validate --all --strict --store <slug>`,
+  and stays green at every milestone commit.
 - Registration is machine-local and needs `openspec/config.yaml` in the
   root: `openspec store register <path> --id <slug> --yes` after moving or
   cloning a store on a new machine.

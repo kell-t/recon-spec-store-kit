@@ -75,7 +75,9 @@ print("appended to pr_commits.json:", added, "| corpus:", len(pcs))
 
 SCOPES = {k: set(s.lower() for s in c.get("scopes", []))
           for k, c in cfg["capabilities"].items()}
-SUBJ = {k: re.compile(c["subject_regex"], re.I)
+# Optional per-cap `tail_subject_regex` (tightened fallback for the tail);
+# falls back to the pass-1 `subject_regex`.
+SUBJ = {k: re.compile(c.get("tail_subject_regex") or c["subject_regex"], re.I)
         for k, c in cfg["capabilities"].items()}
 tc = collections.defaultdict(list)
 for r in tail:
