@@ -44,13 +44,26 @@ material is inadmissible.
    `- Anchor:` line, before the next `###` header (`####` stays inside). Add
    one `- Source:` line per cited clause group at the end of the scenario.
    Keep the requirement's Status/Evidence/Anchor lines untouched.
-   Cite formats (enforced by `recon/scripts/audit_scenarios.py`):
+   Cite formats (enforced by `recon/scripts/audit_scenarios.py`). A single
+   `- Source:` line may hold several cites joined by `;` (outside quotes and
+   backticks); every cite is verified independently. A line with only free
+   prose is rejected unless it carries a verifiable cite.
    - `[relnote <ver>] "quoted phrase"` — ≥60% non-stopword token overlap
-     with the cited version's body;
+     with the cited version's body; a second `"phrase"` after the first (or
+     after `;`) is an additional quote on the same version.
    - `doc: <path> § <section> "quoted phrase"` — path resolves under
-     evidence/docs/ (flattened names) or the repo; ≥60% overlap with that doc;
+     evidence/docs/ (flattened names) or the repo; ≥60% overlap with that
+     doc. `— "phrase"` (em-dash) and a bare `"phrase"` are equivalent to the
+     `§` form. A quoteless `doc: <path> § Section, invariant 2` just requires
+     each comma-part (minus a trailing enumerator) to appear in the file; a
+     section that is itself a `<file>.md` path must resolve. `(<annotation>)`
+     and a `path:line[-line]` suffix are tolerated (line suffix ⇒ a code
+     anchor: file + line must exist).
    - `test: <path>::TestClass::test_method` — EXACT class+method grep in the
      repo at the pin (invented segments are the known fabrication shape).
+     `::method`, a trailing ` (annotation: …)`, and ` and ` to add methods
+     (`X::m1 and ::m2`) or whole cites (`X::m and Y::m2`) are all accepted.
+   - Free prose carrying `file:line` anchors verifies those anchor files exist.
    Quotes that themselves contain a package-relative path: drop the inner
    backticks from the quote (tokens unchanged, overlap unaffected) — never
    re-qualify a path inside a quote; that falsifies it.

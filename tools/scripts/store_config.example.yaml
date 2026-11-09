@@ -49,5 +49,20 @@ release_notes:
 # Extensions accepted in `file:line` anchors.
 anchor_extensions: [py, md, ts, tsx, yaml, yml, json, sh, toml]
 
+# Bare backticked names that are runtime data files the behavior writes
+# (config.yaml, devices.json, ...), never present in the source repo: exempt
+# from the bare-path existence gate. List names that resolve nowhere else —
+# do NOT use this to hide a genuinely-fabricated path.
+runtime_artifacts: []
+
+# Anchor-hint keyword check (drafts convention: backtick hints should contain
+# a literal identifier near the cited line). A store whose drafts predate that
+# convention may set `false` to downgrade it to advisory, then graduate by
+# rewriting hints to literal identifiers. Bare `off` is parsed by YAML as
+# false; write `false`. NOTE: a store drafted with current conventions should
+# pass STRICT (one of the two reference stores does) — this is a legacy-draft
+# escape hatch, not the norm; prefer keeping strict.
+anchor_hint_check: strict
+
 # Author-date where the PR-ref window ends (tail mining start; pr-ref stores).
 tail_after: "YYYY-MM-DD"

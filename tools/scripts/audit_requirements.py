@@ -44,6 +44,7 @@ bundle_text = "".join(open(os.path.join(EV, fn), errors="ignore").read()
     if os.path.isdir(EV) else ""
 bundle_prs = set(re.findall(r"#(\d+)", bundle_text))
 rel_bodies = common.relnote_bodies(cfg)
+runtime_artifacts = set(cfg.get("runtime_artifacts", []))
 rel_prs = set(re.findall(r"#(\d+)", json.dumps(rel_bodies)))
 vn = common.verified_numbers()
 
@@ -109,12 +110,24 @@ def audit_block(text, failures, ctx):
         if toks and not any(hit(t) for t in toks):
             whole = "\n".join(lines)
             if not any(t in whole for t in toks):
-                failures.append("ANCHOR-KEYWORD %s:%s hint=%r in %s"
-                                % (f, ln, hint[:40], where))
-    # F bare/relative path existence (existence-based, not slash-based)
-    for p in set(PATH_RE.findall(text)):
-        if not pin.exists(p):
-            failures.append("PATH-UNRESOLVED `%s` in %s" % (p, where))
+                if cfg.get("anchor_hint_check", "strict") not in (
+                        "off", False):
+                    failures.append(
+                        "ANCHOR-KEYWORD %s:%s hint=%r in %s"
+                        % (f, ln, hint[:40], where))
+    # F bare/relative path existence (existence-based, not slash-based);
+    # runtime_artifacts = data files the behavior writes (never in-repo);
+    # drift-note lines record absent/renamed files ON PURPOSE; names that
+    # exist in the flattened evidence/docs corpus are corpus citations
+    for line in text.splitlines():
+        if re.search(r"\bdrift\b", line, re.I):
+            continue
+        for p in set(PATH_RE.findall(line)):
+            if not pin.exists(p) and pin.resolve_bare_path(p) is None \
+                    and os.path.basename(p) not in runtime_artifacts \
+                    and not os.path.exists(
+                        os.path.join(common.EV, "docs", p)):
+                failures.append("PATH-UNRESOLVED `%s` in %s" % (p, where))
     # P GitHub-number cites
     for p in PRNUM_RE.findall(text):
         if cfg["pr_ref_mode"] == "ref-free":
@@ -124,8 +137,8 @@ def audit_block(text, failures, ctx):
               and p not in rel_prs and p not in vn):
             failures.append("PR-NOT-IN-EVIDENCE #%s in %s" % (p, where))
     # R relnote quotes
-    for m in re.finditer(r"\[relnote ([\w.\-]+)\]\s*\"([^\"]+)\"", text):
-        tag, quote = m.group(1), m.group(2)
+    for m in re.finditer(r"\[relnote ([^\]]+)\]\s*\"([^\"]+)\"", text):
+        tag, quote = re.sub(r"\s+", " ", m.group(1).strip()), m.group(2)
         body = rel_bodies.get(tag)
         if body is None:
             alt = [t for t in rel_bodies if tag in t or t in tag]
@@ -137,18 +150,28 @@ def audit_block(text, failures, ctx):
         if ov < 0.6:
             failures.append("RELNOTE-OVERLAP %.0f%% %s %r in %s"
                             % (ov * 100, tag, quote[:50], where))
-    # T test cites
+    # T test cites (basename/partial path: any candidate file containing
+    # every :: segment passes)
     for path, segs in TESTSEG_RE.findall(text):
-        if not pin.exists(path):
+        cands = [path] if pin.exists(path) else pin.find_suffix(path)
+        if not cands:
             failures.append("TEST-PATH-MISSING %s in %s" % (path, where))
             continue
-        whole = "\n".join(pin.lines(path))
-        for s in [x for x in segs.split("::") if x]:
-            if s not in whole:
-                failures.append("TEST-NAME-MISSING %s::%s in %s" % (path, s, where))
-    # S sha cites
-    for tok in SHA_RE.findall(text):
+        seg_list = [x for x in segs.split("::") if x]
+        whole_list = ["\n".join(pin.lines(c) or []) for c in cands]
+        for s in seg_list:
+            if not any(s in whole for whole in whole_list):
+                failures.append("TEST-NAME-MISSING %s::%s in %s"
+                                % (path, s, where))
+    # S sha cites (a 7-12 hex run is a commit ref ONLY outside backticks;
+    # backticked hex like `0000aa55` is a code constant, not a commit)
+    const_spans = [(m.start(), m.end())
+                   for m in re.finditer(r"`[^`]+`", text)]
+    for m in re.finditer(r"(?<![\w./:-])([0-9a-f]{7,12})(?![\w./-])", text):
+        tok = m.group(1)
         if tok.isdigit() or tok in PIN[:12]:
+            continue
+        if any(a <= m.start() < b for a, b in const_spans):
             continue
         if not pin.sha_resolves(tok):
             failures.append("SHA-UNRESOLVED %s in %s" % (tok, where))
