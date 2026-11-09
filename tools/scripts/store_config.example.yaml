@@ -1,0 +1,52 @@
+# store_config.yaml — per-store knobs for the recon script kit.
+# Copy to <store>/recon/scripts/store_config.yaml and fill.
+# Store root is auto-detected (scripts live in <store>/recon/scripts/);
+# override with env RECON_STORE.
+
+pin_sha: "<full-40-hex sha of the pin>"
+
+# Evidence model (RUNBOOK §2.5): pr-ref | ref-free
+pr_ref_mode: pr-ref
+
+# Capabilities: one entry per capability in repo_config.yaml scope.included.
+# subject_regex: Phase-2 clustering regex (tighten after FP triage).
+# scopes: conventional-commit scopes owned (tail mining is SCOPE-FIRST).
+# code: primary paths (ref-free bundle headers print these as inventory).
+capabilities:
+  core-api:
+    subject_regex: 'api|endpoint|handler|request'
+    scopes: [api, core]
+    code: [src/api/]
+  cli-interface:
+    subject_regex: '\bcli\b|command|flag|repl'
+    scopes: [cli]
+    code: [cli/]
+
+# Normative docs copied to recon/evidence/docs/ (flattened names).
+docs:
+  - README.md
+  - docs/ARCHITECTURE.md
+  - SECURITY.md
+  - RELEASE.md
+
+# Test entry points for the Tier-C inventory (framework-agnostic grep of
+# class/def shapes; adjust test_inventory pattern in mine_evidence.py if not
+# python-style).
+test_files:
+  - tests.py
+
+release_notes:
+  # mode: relnote_files  -> mine_relnotes.py splits `source` into
+  #                           evidence/relnote_<ver>.txt
+  #       releases_json  -> fetch GitHub Releases API to evidence/releases.json
+  #                           ({tag, name, published_at, body})
+  mode: relnote_files
+  source: recon/evidence/docs/RELEASE.md
+  header_regex: '(?m)^## (v[0-9][^\n]*)$'   # adjust to the doc's header shape
+  version_extract: '^v?\d+\.\d+(\.\d+)?'    # pulled from the header line
+
+# Extensions accepted in `file:line` anchors.
+anchor_extensions: [py, md, ts, tsx, yaml, yml, json, sh, toml]
+
+# Author-date where the PR-ref window ends (tail mining start; pr-ref stores).
+tail_after: "YYYY-MM-DD"
