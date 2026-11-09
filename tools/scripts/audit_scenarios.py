@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 """Scenario-level audit gate: every `#### Scenario:` block's `- Source:`
-lines must be one of (cite grammar must match SCENARIO_PASS_TEMPLATE):
+lines are cite lists joined by ';' (outside quotes/backticks); every cite
+must be one of (cite grammar must match SCENARIO_PASS_TEMPLATE):
 
-  [relnote <ver>] "quoted phrase"  -> version body exists (relnote_<ver>.txt
-                                      and/or releases.json); >=60%
-                                      non-stopword token overlap
-  doc: <path> § <section> "phrase" -> path resolves under evidence/docs/
-                                      (flattened) or the repo; >=60% overlap
-  test: <path>::Class::method      -> EXACT grep of path + every :: segment
-                                      in the repo at the pin
+  [relnote <ver>] "phrase" ["phrase"...]
+                     -> version body exists (relnote_<ver>.txt and/or
+                        releases.json, alias-resolved); >=60% overlap each
+  doc: <path>[:line] [(annotation)] [§ section [—]] "phrase" [/ "phrase"...]
+                     -> path resolves under evidence/docs/ (flattened) or
+                        the repo; >=60% overlap each quote; a quoteless
+                        `doc: p § Section` requires the section text to
+                        appear in the file
+  test: <path>::[Class::]method
+                     -> EXACT grep of path + every :: segment in the repo
+                        at the pin (a bare `path::rest` after ';` is a
+                        test cite continuation)
+  prose with `file:line` anchors -> anchor files must exist at the pin
 
 Exit non-zero on any violation. Scenarios with a NOTE marking them derived
 (conversion-injected scenario-debt) are skipped, never counted as grounded.
@@ -53,43 +60,127 @@ for fn in sorted(os.listdir(DRAFTS)):
         if not sources:
             bad.append("%s | %s: scenario with no Source line" % (cap, name))
         for s in sources:
-            rm = re.match(r"\[relnote ([v0-9.][\w.\-]*)\]\s*\"(.+)\"", s, re.S)
-            dm = re.match(r"doc: (\S+)(?:\s*§\s*[^\"]*)?\s*\"(.+)\"", s, re.S)
-            tm = re.match(r"test: (\S+)::(.+)", s)
-            if rm:
-                body = rel_bodies.get(rm.group(1))
-                if body is None:
-                    alt = [t for t in rel_bodies if rm.group(1) in t or t in rm.group(1)]
-                    body = " ".join(rel_bodies[t] for t in alt) if alt else None
-                if body is None:
-                    bad.append("%s | %s: relnote %s not mined" % (cap, name, rm.group(1)))
+            cites = common.parse_source(s)
+            typed = [c for c in cites if c["kind"] != "other"]
+            if not typed:
+                bad.append("%s | %s: unparseable Source: %s" % (cap, name,
+                                                                s[:80]))
+            for c in cites:
+                if c["kind"] == "other":
+                    # prose commentary rides along with a verifiable cite;
+                    # flag only when the line has no typed evidence at all
                     continue
-                ov = common.token_overlap(rm.group(2), body)
-                if ov < 0.6:
-                    bad.append("%s | %s: relnote quote overlap %.0f%%: %s..."
-                               % (cap, name, ov * 100, rm.group(2)[:60]))
-            elif dm:
-                p = resolve_doc(dm.group(1))
-                if p is None:
-                    bad.append("%s | %s: doc path unresolved: %s" % (cap, name, dm.group(1)))
-                    continue
-                ov = common.token_overlap(dm.group(2),
-                                          open(p, errors="ignore").read())
-                if ov < 0.6:
-                    bad.append("%s | %s: doc quote overlap %.0f%%: %s..."
-                               % (cap, name, ov * 100, dm.group(2)[:60]))
-            elif tm:
-                path, rest = tm.group(1), tm.group(2)
-                if not pin.exists(path):
-                    bad.append("%s | %s: test path missing: %s" % (cap, name, path))
-                    continue
-                whole = "\n".join(pin.lines(path))
-                for seg in [x for x in rest.split("::") if x]:
-                    if seg not in whole:
-                        bad.append("%s | %s: test segment missing: %s::%s"
-                                   % (cap, name, path, seg))
-            else:
-                bad.append("%s | %s: unparseable Source: %s" % (cap, name, s[:80]))
+                if c["kind"] == "relnote":
+                    body = rel_bodies.get(c["ver"])
+                    if body is None:
+                        alt = [t for t in rel_bodies
+                               if c["ver"] in t or t in c["ver"]]
+                        body = " ".join(rel_bodies[t] for t in alt) \
+                            if alt else None
+                    if body is None:
+                        bad.append("%s | %s: relnote %s not mined"
+                                   % (cap, name, c["ver"]))
+                        continue
+                    for q in c["quotes"]:
+                        ov = common.token_overlap(q, body)
+                        if ov < 0.6:
+                            bad.append("%s | %s: relnote quote overlap "
+                                       "%.0f%%: %s..." % (cap, name,
+                                                          ov * 100, q[:60]))
+                    if not c["quotes"]:
+                        bad.append("%s | %s: relnote cite with no quote"
+                                   % (cap, name))
+                elif c["kind"] == "doc":
+                    p = resolve_doc(c["path"])
+                    if p is None:
+                        bad.append("%s | %s: doc path unresolved: %s"
+                                   % (cap, name, c["path"]))
+                        continue
+                    body = open(p, errors="ignore").read()
+                    if c["quotes"]:
+                        for q in c["quotes"]:
+                            ov = common.token_overlap(q, body)
+                            if ov < 0.6:
+                                bad.append("%s | %s: doc quote overlap "
+                                           "%.0f%%: %s..." % (cap, name,
+                                                              ov * 100,
+                                                              q[:60]))
+                    else:
+                        # quoteless pointer; if it carried a line/range
+                        # treat as code anchor, else verify section parts
+                        if c.get("lines") and not c["section"].strip():
+                            src = pin.lines(c["path"])
+                            if src is None:
+                                bad.append(
+                                    "%s | %s: code path missing: %s"
+                                    % (cap, name, c["path"]))
+                            elif c["lines"][1] > len(src):
+                                bad.append(
+                                    "%s | %s: code line out of range: %s"
+                                    % (cap, name, c["path"]))
+                            continue
+                        low = body.lower()
+                        head = re.split(r"\s+—\s+|\s+-\s+", c["section"])[0]
+                        parts = [re.sub(r"\s*\d+$", "", x.strip().lower())
+                                 for x in re.split(r"[,/]", head)]
+                        missing = []
+                        if len(parts) > 1 and re.fullmatch(
+                                r"[\w./_-]+\.(md|py|ts|tsx|yaml|yml|json"
+                                r"|sh|toml)", head.strip().lower()):
+                            parts = [head.strip().lower()]  # it's one path
+                        for x in parts:
+                            if not x:
+                                continue
+                            if re.search(r"\.(md|py|ts|tsx|yaml|yml|json|"
+                                         r"sh|toml)$", x):
+                                # section pointer to another file
+                                if (resolve_doc(x) is None
+                                        and not pin.exists(x)):
+                                    missing.append(x)
+                            elif x not in low:
+                                missing.append(x)
+                        if missing:
+                            bad.append("%s | %s: doc section not found: %s"
+                                       % (cap, name,
+                                          c["section"][:60] or c["path"]))
+                elif c["kind"] == "code":
+                    if not pin.exists(c["path"]):
+                        bad.append("%s | %s: code path missing: %s"
+                                   % (cap, name, c["path"]))
+                        continue
+                    lines = pin.lines(c["path"])
+                    if c["line"] > len(lines):
+                        bad.append("%s | %s: code line out of range: %s:%s"
+                                   % (cap, name, c["path"], c["line"]))
+                        continue
+                    for q in c.get("quotes", []):
+                        ov = common.token_overlap("\n".join(lines), q)
+                        if ov < 0.6:
+                            bad.append("%s | %s: code string quote overlap "
+                                       "%.0f%%: %s..." % (cap, name,
+                                                          ov * 100, q[:60]))
+                elif c["kind"] == "test":
+                    path = c["path"]
+                    if not pin.exists(path):
+                        bad.append("%s | %s: test path missing: %s"
+                                   % (cap, name, path))
+                        continue
+                    whole = "\n".join(pin.lines(path))
+                    for seg in c["segs"]:
+                        if seg not in whole:
+                            bad.append("%s | %s: test segment missing: "
+                                       "%s::%s" % (cap, name, path, seg))
+                elif c["kind"] == "anchor":
+                    for f, ln in c["anchors"]:
+                        fp = resolve_doc(f) if "/" not in f else None
+                        if not pin.exists(f) and fp is None:
+                            alt = pin.resolve_bare_path(f)
+                            if alt is None:
+                                bad.append("%s | %s: anchor file missing: %s"
+                                           % (cap, name, f))
+                else:
+                    bad.append("%s | %s: unparseable Source segment: %s"
+                               % (cap, name, c["text"][:80]))
     stats[cap] = dict(reqs=text.count("### Requirement:"), grounded=grounded)
 
 tot_g = sum(v["grounded"] for v in stats.values())
