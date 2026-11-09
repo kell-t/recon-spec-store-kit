@@ -1,0 +1,69 @@
+# Per-repo intel for <slug> spec reconstruction. Amended at scope changes.
+# Boot order: PLAYBOOK.md -> this file -> RECON_LEDGER.md
+# STORE SETUP: fill every <...>; delete the inline guidance comments.
+
+repo:
+  url: https://github.com/<org>/<repo>
+  default_branch: <branch>
+  pin_tag: <tag-or-none>
+  pin_sha: <full-sha>
+  pin_date: "<YYYY-MM-DD>"
+  clone_path: repo/            # blobless clone at the pin
+  clone_mode: "git clone --filter=blob:none [--branch <tag>]"
+  license: <SPDX>              # READ the LICENSE file header, never assume
+  history:                     # Phase-0 counts (scripted, not guessed)
+    total_commits: <n>
+    no_merges: <n>
+    pr_landed_commits: <n>     # subjects ending in (#NNNN)
+    date_range: <start> .. <pin date>
+    pr_ref_convention: "<e.g. trailing (#NNNN) on squash merges; N% carry refs>"
+    evidence_model: pr-ref | ref-free   # see references/evidence-models.md
+  tags_total: <n>              # note canary/rc vs full-release tag shape
+
+scope:
+  decision_date: "<date>"
+  rationale: >
+    <why these capabilities and not others; name the deferred buckets'
+    commit counts so the ambition cap is auditable>
+  included:
+    - capability: <cap-name>
+      why: <one line>
+      code: [<primary paths>]
+      scopes: [<conventional-commit scopes owned>]
+  deferred:
+    - <bucket>   # <commit count>; <note>
+  ownership_decisions:         # boundary calls; repo's own routing docs decisive
+    - question: "<X: cap-A vs cap-B?>"
+      decision: <cap>
+      basis: "<cited routing doc / code location that decides it>"
+
+clustering:  # regex on commit subject; a commit may land in <=2 buckets.
+  # Tighten after observing false positives; prefer scopes when available.
+  # Add one key per capability in `scope.included` (keys must be unique), e.g.
+  core-api: '<regex>'
+  cli-interface: '<regex>'
+
+normative_docs:
+  root: <README/AGENTS/hub doc>
+  area_guides: [<per-area normative docs, if any>]
+  security: <SECURITY.md or none>
+  long_form: <docs dir>
+  release_notes: "<GitHub Releases API | in-tree RELEASE.md — where mined>"
+  contributing: <CONTRIBUTING.md or none>
+  tests: "<test entry points: files + framework, for Tier-C grounding>"
+
+github_api:
+  auth: "<netrc | env token>; read-only; never print"
+  budget: "check /rate_limit before API phases; prefer git log"
+  spend_note: "<what this store spends API calls on>"
+
+fleet:
+  drafting:
+    max_concurrent: <n>        # server cap, plan waves not swarms
+    per_capability_reqs: [8, 20]
+    template: recon/DRAFT_TEMPLATE.md
+  validation:
+    converter: "python3 tools/draft_to_spec.py specs_draft openspec/specs ''"
+    dash_strip: "converter emits -<cap> dirs with empty prefix; strip before validate"
+    command: "openspec validate --all --strict --store <slug>"
+    namespace: "store folder IS the namespace; capability dirs = capability names"

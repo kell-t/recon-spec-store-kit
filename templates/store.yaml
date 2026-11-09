@@ -1,0 +1,4 @@
+# OpenSpec store identity — copy to <store>/.openspec-store/store.yaml
+# id = the repo slug, unique per machine registration.
+version: 1
+id: <slug>
