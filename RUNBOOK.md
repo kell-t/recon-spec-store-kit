@@ -44,6 +44,11 @@ Conventions used below:
 5. Copy templates into the store: `PLAYBOOK.md`, `DRAFT_TEMPLATE.md`,
    `SCENARIO_PASS_TEMPLATE.md` → `recon/`; `RECON_LEDGER.md` → `recon/`;
    `repo_config.yaml` → `recon/`; `store-WORKFLOW.md` → store root.
+   `store-README.md` → store root as `README.md` — every new store repo
+   carries a README: fill its placeholders at bootstrap (capability table
+   from `repo_config.yaml` scope, evidence-model sentence from Phase 0,
+   status snapshot from the first tally) before the first push; it links
+   back to this kit.
 6. Copy the tool kit: `tools/draft_to_spec.py` → `<store>/tools/` (or keep a
    shared cluster copy); everything in `tools/scripts/` →
    `<store>/recon/scripts/`; copy `store_config.example.yaml` →

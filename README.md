@@ -29,6 +29,8 @@ recon-spec-store-kit/              <- THIS repo: process IP only
     RECON_LEDGER.md                <- per-pass ledger skeleton
     repo_config.yaml               <- per-repo intel skeleton
     store-WORKFLOW.md              <- per-store policy skeleton
+    store-README.md                <- store repo README skeleton (kit-referencing;
+                                      fill at bootstrap — every store repo has one)
     cluster-WORKFLOW.md            <- container policy (multi-store)
     store.yaml                     <- OpenSpec store identity
     LICENSE.recon                  <- MIT text to drop into each store's recon/
