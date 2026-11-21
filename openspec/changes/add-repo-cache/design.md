@@ -18,35 +18,37 @@
    403/401, rate limit, or 5xx says nothing about the local clone.
    Requirement strength follows that split (owner ruling, 2026-11-21): the
    *policy* is soft (re-cloning **SHOULD** be reserved for recovery), the
-   *mechanics* are hard (quarantine-first, never-auto-delete, auth-never-
-   triggers: **SHALL**).
-   Recovery is **quarantine-first** (owner design, 2026-11-21): rename
-   `.repo` → `.repo-corrupt-YYYYMMDD`, THEN clone fresh into `.repo`.
-   This ordering removes the destructive step entirely — every operation is
-   either reversible (rename) or additive (clone into an empty path) — so
-   no failure mode can lose data: if the fresh clone fails mid-recovery,
-   the quarantine still holds the old copy, and the next run of
-   `sync_repo.py` restores the cache — verified empirically on 2026-11-21
-   with SIGKILL mid-clone: a *cleanly* failed clone leaves no directory
-   (git cleans up; next run clones as on first install), and a
+   *mechanics* are hard (undo-copy-before-clone, auth-never-triggers:
+   **SHALL**).
+   Recovery keeps ONE **rolling undo slot** (owner simplification,
+   2026-11-22; an earlier design date-stamped forensic quarantines and
+   kept them until owner-authorized deletion — withdrawn because the
+   cache holds a **public** repo whose preservation is not the store's
+   job): rename `.repo` → `.repo-old`, **replacing** any existing
+   `.repo-old`, THEN clone fresh into `.repo`. The rename-first ordering
+   keeps the destructive step minimal — the only deletion is the
+   *previous* undo copy, never the active cache; a crash between replace
+   and rename loses at worst the older undo. If the fresh clone fails
+   mid-recovery, `.repo-old` still holds the old copy, and the next run
+   of `sync_repo.py` restores the cache — verified empirically on
+   2026-11-21 with SIGKILL mid-clone: a *cleanly* failed clone leaves no
+   directory (git cleans up; next run clones as on first install), and a
    **hard-killed partial `.git`** (objects present, HEAD unborn) is healed
    by the next run's fetch + forced checkout (recovered to a healthy HEAD,
-   rc=0). The sick copy
-   survives as quarantine until the owner authorizes deletion. An earlier
-   draft required a shallow-clone access probe; it was superseded — the
-   ordering itself makes the probe redundant (nothing is consumed or
-   destroyed before access is proven by the clone's own success). A
-   staging-dir + swap design was also considered and rejected as more
-   moving parts for the same guarantee. The quarantine renames the whole
-   cache including its worktrees; each worktree's git link is stored
-   cache-relative (decision 10), so quarantined worktrees stay usable for
-   inspection, while the cache's back-links to them read stale until
-   `git worktree repair` fixes them in place (verified). A wrong-URL
-   `--rebuild` is refused (exit 3)
-   BEFORE any quarantine rename — recovery may never consume a healthy
-   cache on a parameter mistake — and `--rebuild` quarantines husk
-   directories (no git metadata) that would otherwise deadlock the fresh
-   clone.
+   rc=0). An earlier draft required a shallow-clone access probe; it was
+   superseded — the ordering itself makes the probe redundant (nothing is
+   consumed or destroyed before access is proven by the clone's own
+   success). A staging-dir + swap design was also considered and rejected
+   as more moving parts for the same guarantee. Worktree git links stay
+   git-native (absolute): after a slot rename the stashed worktrees read
+   broken, but the undo path is `mv .repo-old .repo` + ordinary sync, so
+   inspectability was judged not worth hand-editing git pointer files
+   (decision 10). A wrong-URL `--rebuild` is refused (exit 3) BEFORE the
+   slot is touched — recovery may never consume a healthy cache on a
+   parameter mistake — and `--rebuild` stashes husk directories (no git
+   metadata) that would otherwise block the fresh clone. `.repo-old` is
+   gitignored and ignored by all store work (spec scenario "Undo slot
+   rolls").
 3. **Strict ref resolution (pin law).** After fetch the requested
    tag/sha/branch must resolve (local, then `origin/<ref>`, then
    `refs/tags/<ref>`); otherwise exit non-zero leaving the checkout
@@ -124,25 +126,23 @@
    `.repo/wt/` instead. Consumers read source files through
    `common.SRC` (the current branch's worktree), never through the bare
    cache root.
-10. **Hybrid worktree git links (owner-prompted hardening, 2026-11-22).**
-    `sync_repo.py` rewrites each worktree's `.git` file to a
-    cache-RELATIVE `gitdir:` link after creation (and upgrades older
-    caches on the next sync); the admin-side
-    `worktrees/<name>/gitdir` file stays ABSOLUTE. Verified on git
-    2.47.3: making BOTH sides relative is unsafe — git resolves the
-    admin-side file literally, judges a LIVE worktree "prunable", and
-    `git worktree prune` then deletes its admin entry, orphaning the
-    checkout. With the hybrid form the full lifecycle is green (worktree
-    list and prune no-op, fetch, force-checkout, second add, remove,
-    fsck) AND a quarantine-renamed cache keeps usable, inspectable
-    worktrees — surviving even relocation of the quarantined copy —
-    without running `git worktree repair`, which remains the fallback
-    for pre-existing renamed caches. git 2.47.3 offers no supported
-    creation-time relative mode: there is no `--relative-paths` flag and
+10. **Relative worktree git links — experimented, REJECTED (2026-11-22).**
+    A hybrid form (worktree-side `.git` file rewritten cache-relative,
+    admin-side `worktrees/<name>/gitdir` left absolute) was implemented
+    and verified on git 2.47.3 — it let a renamed cache keep usable
+    worktrees — but was WITHDRAWN the same day on owner review:
+    hand-editing git pointer files is an extra failure surface for no
+    job the store owns (the cache holds a public repo; recoverability is
+    `mv .repo-old .repo` + ordinary sync, not live inspection of a sick
+    cache). Two hard findings are kept as evidence in case the idea
+    resurfaces: making BOTH sides relative is dangerous — git resolves
+    the admin-side file literally, judges a LIVE worktree "prunable",
+    and `git worktree prune` then deletes its admin entry, orphaning the
+    checkout; and git 2.47.3 offers no supported creation-time relative
+    mode — there is no `--relative-paths` flag, and
     `worktree.useRelativePaths` is NOT a real key (git accepts any
     dotted config silently but the binary contains no such code path —
-    pointers stayed absolute with it set). Never set it globally; the
-    tool rewrites the one file it owns per worktree instead.
+    pointers stayed absolute with it set; never set it globally).
 
 ## Notes (not requirements)
 - Scope note (owner, 2026-11-21): the kit's openspec folder intentionally
@@ -162,5 +162,6 @@
 ## Migration (per existing store)
 `python3 recon/scripts/sync_repo.py <source-url> --ref <pin>` once → renames
 legacy `repo/`, refreshes, creates this branch's worktree, prints the pin
-SHA; then re-copy kit scripts, ensure `.gitignore` has `.repo/`, copy kit
-`openspec/` → `recon/openspec/`, ledger line with kit version.
+SHA; then re-copy kit scripts, ensure `.gitignore` has `.repo/` and
+`.repo-old/`, copy kit `openspec/` → `recon/openspec/`, ledger line with kit
+version.

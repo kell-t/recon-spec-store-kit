@@ -16,7 +16,7 @@ clone's named worktrees, inside or outside the store.
 - **WHEN** `<store>/.repo` does not exist
 - **THEN** `tools/scripts/sync_repo.py` creates it as a bare blobless clone
   (`git clone --bare --filter=blob:none`) of the store's source URL and
-  ensures the store root `.gitignore` ignores `.repo/`
+  ensures the store root `.gitignore` ignores `.repo/` and `.repo-old/`
 
 #### Scenario: Cache reused, never re-cloned
 - **WHEN** `<store>/.repo` already exists for the same source URL
@@ -77,36 +77,33 @@ them.
 - **THEN** the sync step resets it to the requested ref (force checkout +
   clean of untracked files) rather than failing
 
-### Requirement: Re-cloning only as quarantine-first corruption recovery
+### Requirement: Re-cloning only as recovery with a `.repo-old` undo slot
 Deleting and re-creating `<store>/.repo` SHOULD be reserved for manual
 recovery of a locally confirmed corrupted clone (`git fsck` failure,
-unreadable refs, index damage); when performed, it SHALL quarantine first:
-rename `.repo` to `.repo-corrupt-YYYYMMDD` BEFORE the fresh clone begins.
-Authentication or server errors (401/403, rate limits, 5xx, timeouts)
-SHALL NOT trigger recovery; the quarantined copy SHALL never be
-auto-deleted.
+unreadable refs, index damage); when performed, it SHALL first rename the
+old cache to `<store>/.repo-old` — replacing any existing `.repo-old` —
+and only then clone fresh. Work on the spec store SHALL ignore
+`.repo-old`. Authentication or server errors (401/403, rate limits, 5xx,
+timeouts) SHALL NOT trigger recovery.
 
 #### Scenario: Transient failure preserves the cache
 - **WHEN** a sync fails with an authentication, rate-limit, or server error
 - **THEN** the existing `.repo` is left in place untouched — recovery is
   not a response to upstream trouble
 
-#### Scenario: Quarantine precedes re-clone
+#### Scenario: Undo slot precedes re-clone
 - **WHEN** recovery runs (`sync_repo.py --rebuild` or the manual
   equivalent) on a confirmed-corrupt cache
-- **THEN** `.repo` is renamed to `.repo-corrupt-YYYYMMDD` first (worktrees
-  included) and only then is the fresh bare blobless clone created at
-  `.repo` — if that clone fails, nothing is lost: the quarantined copy
-  remains and the next ordinary sync run restores the cache, either by
-  cloning again from scratch (a cleanly failed clone leaves no directory
-  behind, exactly as on first install) or by completing a hard-interrupted
-  partial `.git` with its fetch and forced checkout
-- **AND** each worktree's git link is stored relative to the cache, so the
-  quarantined copy's worktrees stay usable for inspection; links from the
-  cache back to its worktrees read stale after the move until
-  `git worktree repair` fixes them in place
+- **THEN** `.repo` is renamed to `.repo-old` (replacing any existing
+  `.repo-old`) and only then is the fresh bare blobless clone created at
+  `.repo` — if that clone fails, nothing is lost: `.repo-old` still holds
+  the previous cache, and the next ordinary sync run restores the cache,
+  either by cloning again from scratch (a cleanly failed clone leaves no
+  directory behind, exactly as on first install) or by completing a
+  hard-interrupted partial `.git` with its fetch and forced checkout
 
-#### Scenario: Quarantine lifetime
-- **WHEN** a recovery completes successfully
-- **THEN** the corrupt copy stays on disk until the owner authorizes its
-  deletion
+#### Scenario: Undo slot rolls
+- **WHEN** a recovery runs while `.repo-old` already exists
+- **THEN** the previous undo copy is deleted as the new one takes its
+  place — the slot holds only the most recent previous cache, and no
+  store work ever reads it

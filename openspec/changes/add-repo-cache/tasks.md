@@ -8,7 +8,7 @@
 - [x] tools/README.md table row + dependency line
 - [x] root README.md tree entries (`openspec/`, sync note)
 - [x] `openspec validate --all --strict` green at kit root
-- [x] recovery law (owner 2026-11-21): re-clone = corruption-only, manual, QUARANTINE-FIRST (rename `.repo` → `.repo-corrupt-YYYYMMDD` before the fresh clone; never delete; mid-clone failure self-heals on next sync); auth/server errors never trigger it (spec req 4 + design decision 2 + tool docstring)
+- [x] recovery law (owner 2026-11-21, simplified 2026-11-22): re-clone = corruption-only, manual, undo-first (rename `.repo` → `.repo-old`, a rolling one-slot undo that REPLACES any previous `.repo-old`, before the fresh clone; store work ignores `.repo-old`; mid-clone failure self-heals on next sync); auth/server errors never trigger it (spec req 4 + design decision 2 + tool docstring)
 - [ ] post-merge: ARCHIVE with `openspec archive add-repo-cache --yes` on
   main — this CREATES the living specs under `openspec/specs/` from the
   deltas (their `## Purpose` sections are consumed at creation); commit the

@@ -9,13 +9,15 @@ the branch of this spec-store it serves (git keeps its own admin in
 `.repo/worktrees/`; checkouts live in `.repo/wt/`). Never delete-and-
 reclone in normal flow; never edit or commit inside the cache or worktrees.
 
-Corruption recovery is QUARANTINE-FIRST (spec): `sync_repo.py --rebuild
-<url>` renames the cache — worktrees included — to
-`.repo-corrupt-YYYYMMDD` (never deletes; kept until the owner authorizes
-removal), THEN clones fresh. The tool keeps this policy stricter than the
-spec's SHOULD: use it only for locally confirmed corruption (git fsck);
-authentication or server errors (401/403, rate limit, 5xx) are NEVER
-grounds — the failure is upstream, and normal sync touches nothing then.
+Corruption recovery (spec) keeps ONE rolling undo slot: `sync_repo.py
+--rebuild <url>` renames the existing cache to `.repo-old` (replacing any
+previous `.repo-old`) BEFORE cloning fresh — a quick "undo button", not
+forensics: the cache holds a public repo, so nothing demands preservation.
+Work on the spec store ignores `.repo-old`. The tool keeps this policy
+stricter than the spec's SHOULD: use it only for locally confirmed
+corruption (git fsck); authentication or server errors (401/403, rate
+limit, 5xx) are NEVER grounds — the failure is upstream, and normal sync
+touches nothing then.
 
 Usage:
   sync_repo.py <source-url> [--ref <tag|sha|branch>] [--wt NAME]
@@ -39,15 +41,17 @@ Behavior:
     ref/sha); worktree wt/<name>: `worktree add --detach` if absent, else
     `checkout --force --detach` + `clean -fdq` (cache is disposable).
   - .repo present, DIFFERENT origin URL -> refuse (exit 3), BEFORE any
-    quarantine: a wrong-URL --rebuild must never consume a healthy cache.
+    undo-slot rename: a wrong-URL --rebuild must never consume a healthy
+    cache.
   - ref unresolvable after fetch -> exit 2, checkout untouched (pin law:
     never silently fall back to a different ref).
-  - Ensures the store root .gitignore ignores `.repo/` and `.repo-corrupt-*`.
+  - Ensures the store root .gitignore ignores `.repo/` and `.repo-old/`.
   - Mid-clone interruption needs no special handling: a clean git clone
     failure removes its directory; a hard-killed partial .git is completed
     by the next run's fetch + forced checkout (verified 2026-11-21).
-  - --rebuild quarantines any existing directory at --dest, including a
-    husk without git metadata (clone killed before init completed).
+  - --rebuild replaces the whole directory at --dest, including a husk
+    without git metadata (clone killed before init completed), with the
+    rename into the `.repo-old` slot.
 
 Prints machine-readable tail lines for ledger capture:
   DEST=<abs worktree path>  CACHE=<abs cache path>  HEAD=<full sha>
@@ -60,7 +64,6 @@ import os
 import shutil
 import subprocess
 import sys
-import time
 
 
 class ArgParser(argparse.ArgumentParser):
@@ -126,12 +129,12 @@ def resolve_ref(dest, ref):
 
 
 def ensure_gitignore(dest):
-    """Keep the cache AND recovery artifacts out of git: the cache dir plus
-    any .repo-corrupt-* quarantine must never be committed."""
+    """Keep the cache AND its undo slot out of git: neither the cache dir
+    nor `<cache>-old` may ever be committed."""
     parent = os.path.dirname(os.path.abspath(dest))
     name = os.path.basename(os.path.abspath(dest))
     gi = os.path.join(parent, ".gitignore")
-    need = [f"{name}/", f"{name}-corrupt-*"]
+    need = [f"{name}/", f"{name}-old/"]
     text = open(gi).read() if os.path.exists(gi) else ""
     have = {l.strip() for l in text.splitlines()}
     missing = [l for l in need if l not in have and f"/{l}" not in have]
@@ -139,7 +142,7 @@ def ensure_gitignore(dest):
         return
     if text and not text.endswith("\n"):
         text += "\n"
-    text += ("\n# Persistent source cache + recovery quarantine"
+    text += ("\n# Persistent source cache + recovery undo slot"
              " (recon-spec-store-kit cache;\n"
              "# see recon/openspec/specs/repo-cache).\n"
              + "".join(l + "\n" for l in missing))
@@ -148,49 +151,19 @@ def ensure_gitignore(dest):
     print(f"gitignore: added {missing} to {gi}")
 
 
-def relativize_wt_link(dest, wt):
-    """Worktree-side git link -> cache-relative (hybrid form).
-
-    A quarantine-renamed .repo then keeps usable worktrees without any
-    repair (verified 2026-11-22: survives rename AND relocation). The
-    ADMIN-side `gitdir` file must stay ABSOLUTE: it is resolved
-    literally, so a relative admin pointer makes git judge a LIVE
-    worktree "prunable" and `git worktree prune` deletes its admin
-    entry, orphaning the checkout (verified on git 2.47.3). The admin
-    entry's location differs by cache flavor (bare root vs .git/), so
-    git itself is asked for the common dir. Best-effort: an absolute
-    link is fully functional if the rewrite cannot happen.
-    """
-    link = os.path.join(wt, ".git")
-    r = subprocess.run(["git", "-C", wt, "rev-parse", "--git-common-dir"],
-                       capture_output=True, text=True)
-    if r.returncode != 0:
-        return
-    common = r.stdout.strip()
-    if not os.path.isabs(common):
-        common = os.path.abspath(os.path.join(wt, common))
-    want = "gitdir: " + os.path.relpath(
-        os.path.join(common, "worktrees", os.path.basename(wt)), wt) + "\n"
-    try:
-        if os.path.isfile(link) and open(link).read() != want:
-            with open(link, "w") as fh:
-                fh.write(want)
-    except OSError:
-        pass
-
-
-def quarantine(dest, reason):
-    """Rename (reversible) BEFORE anything else; never delete — the copy
-    outlives recovery by design until the owner authorizes removal."""
-    stamp = time.strftime("%Y%m%d")
-    q = f"{dest}-corrupt-{stamp}"
-    n = 1
-    while os.path.exists(q):
-        q = f"{dest}-corrupt-{stamp}-{n}"
-        n += 1
-    shutil.move(dest, q)
-    print(f"quarantined ({reason}): {dest} -> {q}"
-          f" (kept until owner authorizes deletion)")
+def stash_undo(dest):
+    """Rolling ONE-slot undo (owner ruling 2026-11-22): rename the current
+    cache to `<dest>-old`, REPLACING any previous slot. The copy is a
+    quick undo button for a public-repo cache, not forensics. The one
+    destructive step in recovery consumes only the PREVIOUS undo slot,
+    never the active cache: a crash between replace and rename loses at
+    worst the older undo copy."""
+    old = dest + "-old"
+    if os.path.isdir(old):
+        shutil.rmtree(old)
+        print(f"undo slot rolls: replaced previous {old}")
+    shutil.move(dest, old)
+    print(f"undo slot: {dest} -> {old}")
 
 
 def main():
@@ -205,8 +178,9 @@ def main():
                     help="cache dir (default <store>/.repo;"
                          " dev/testing override only)")
     ap.add_argument("--rebuild", action="store_true",
-                    help="recovery: quarantine the existing cache (husks"
-                         " included), then clone fresh; auth/server errors"
+                    help="recovery: rename the existing cache (husks"
+                         " included) into the .repo-old undo slot (slot"
+                         " rolls), then clone fresh; auth/server errors"
                          " are never grounds")
     args = ap.parse_args()
 
@@ -215,8 +189,8 @@ def main():
                           if args.dest else store_root(), "repo")
     wt = os.path.join(dest, "wt", args.wt or store_branch())
 
-    # Wrong-URL --rebuild is refused BEFORE any quarantine: recovery may
-    # never consume a healthy cache on an upstream/parameter problem.
+    # Wrong-URL --rebuild is refused BEFORE touching anything: recovery
+    # may never consume a healthy cache on an upstream/parameter problem.
     if args.rebuild and is_cache(dest) \
             and not url_eq(origin_url(dest), args.url):
         sys.stderr.write(
@@ -225,9 +199,9 @@ def main():
             f"different source.\n")
         raise SystemExit(3)
     if args.rebuild and os.path.isdir(dest):
-        quarantine(dest, "recovery rebuild; contents quarantined as-is")
+        stash_undo(dest)
     elif args.rebuild:
-        print("--rebuild: nothing at --dest to quarantine; cloning fresh")
+        print("--rebuild: nothing at --dest to stash; cloning fresh")
 
     prev = ""
     if not is_cache(dest):
@@ -279,12 +253,10 @@ def main():
         if sha:
             git(["-C", wt, "checkout", "--force", "--detach", sha])
             git(["-C", wt, "clean", "-fdq"], check=False)
-        relativize_wt_link(dest, wt)  # upgrade pre-hybrid caches too
         head = sha or prev
     else:
         os.makedirs(os.path.join(dest, "wt"), exist_ok=True)
         git(["-C", dest, "worktree", "add", "--detach", wt, sha])
-        relativize_wt_link(dest, wt)
         head = sha
 
     ensure_gitignore(dest)
