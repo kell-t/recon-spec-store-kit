@@ -96,10 +96,12 @@ timeouts) SHALL NOT trigger recovery.
   equivalent) on a confirmed-corrupt cache
 - **THEN** `.repo` is renamed to `.repo-old` (replacing any existing
   `.repo-old`) and only then is the fresh bare blobless clone created at
-  `.repo` — if that clone fails, nothing is lost: `.repo-old` still holds
-  the previous cache, and the next ordinary sync run restores the cache,
-  either by cloning again from scratch (a cleanly failed clone leaves no
-  directory behind, exactly as on first install) or by completing a
+  `.repo`
+- **AND** if that clone fails, nothing is lost: `.repo-old` still holds
+  the previous cache
+- **AND** the next ordinary sync run restores the cache, either by
+  cloning again from scratch (a cleanly failed clone leaves no directory
+  behind, exactly as on first install) or by completing a
   hard-interrupted partial `.git` with its fetch and forced checkout
 
 #### Scenario: Undo slot rolls
