@@ -1,3 +1,9 @@
+## Purpose
+Refuse structurally malformed spec changes mechanically, before review:
+the validator is a parser with a fixed rule table (see
+`references/openspec-validator-rules.md`), so the check is reproducible,
+LLM-free, and costs nothing on a public repository.
+
 ## ADDED Requirements
 
 
