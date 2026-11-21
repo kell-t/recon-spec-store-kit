@@ -12,7 +12,9 @@
 - [ ] post-merge: ARCHIVE with `openspec archive add-repo-cache --yes` on
   main — this CREATES the living specs under `openspec/specs/` from the
   deltas (their `## Purpose` sections are consumed at creation); commit the
-  created specs + archived folder (signed) and push. Deltas are deliberately
+  created specs + archived folder (signed) and push; then a follow-up
+  one-line commit sets `PIN: kit main @ <archive-commit-sha>` in
+  openspec/project.md (kit-side PIN duty). Deltas are deliberately
   NOT pre-applied on the branch (canonical flow, design decision 8). Kit
   `openspec/` re-copied verbatim to each store's `recon/openspec/` at the
   same kit sync; `openspec validate --all --strict` green before and after
