@@ -4,14 +4,15 @@
 Spec: openspec/specs/repo-cache/spec.md (kit). The clone is a CACHE: clone
 once (blobless), then keep it current with fetch + forced detached checkout.
 Never delete-and-reclone in normal flow; never edit or commit inside it.
-Corruption recovery is manual and two-step: probe access first with a
-throwaway shallow clone (`git clone --depth 1 <url> <scratch>`); only on a
-successful probe AND locally confirmed corruption (git fsck) may .repo be
-deleted and re-synced. Auth/server errors (401/403, rate limit, 5xx) are
-NEVER grounds to delete the cache — the failure is upstream, not local.
+Corruption recovery is QUARANTINE-FIRST (spec): `sync_repo.py --rebuild
+<url>` renames the existing cache to `.repo-corrupt-YYYYMMDD` (never
+deletes; kept until the owner authorizes removal), THEN clones fresh into
+`.repo`. Use only for locally confirmed corruption (git fsck) — auth/server
+errors (401/403, rate limit, 5xx) are NEVER grounds: the failure is
+upstream, not local, and normal sync touches nothing in that case.
 
 Usage:
-  sync_repo.py <source-url> [--ref <tag|sha|branch>] [--dest DIR]
+  sync_repo.py <source-url> [--ref <tag|sha|branch>] [--dest DIR] [--rebuild]
 
 --dest defaults to <store>/.repo (store root auto-detected like the other
 kit scripts: from this file's location, override env RECON_STORE).
@@ -27,7 +28,10 @@ Behavior:
     wrong store/URL, do not silently re-point a cache.
   - ref unresolvable after fetch -> exit 2, checkout untouched (pin law:
     never silently fall back to a different ref).
-  - Ensures the store root .gitignore ignores `.repo/`.
+  - Ensures the store root .gitignore ignores `.repo/` and `.repo-corrupt-*`.
+  - Mid-clone interruption needs no special handling: a clean git clone
+    failure removes its directory; a hard-killed partial .git is completed
+    by the next run's fetch + forced checkout (verified 2026-11-21).
 
 Prints machine-readable tail lines for ledger capture:
   DEST=<abs path>  HEAD=<full sha>  [PREV=<full sha>]
@@ -38,6 +42,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 
 
 def store_root() -> str:
@@ -81,26 +86,26 @@ def resolve_ref(dest, ref):
 
 
 def ensure_gitignore(dest):
-    """Keep the clone out of git: ensure '<dirname>/' line in the parent
-    .gitignore (the store root when dest is a direct child)."""
+    """Keep the clone AND recovery artifacts out of git: the cache dir plus
+    any .repo-corrupt-* quarantine must never be committed."""
     parent = os.path.dirname(os.path.abspath(dest))
     name = os.path.basename(os.path.abspath(dest))
     gi = os.path.join(parent, ".gitignore")
-    line = f"{name}/"
-    if os.path.exists(gi):
-        text = open(gi).read()
-        if any(l.strip() == line or l.strip() == f"/{line}"
-               for l in text.splitlines()):
-            return
-        if text and not text.endswith("\n"):
-            text += "\n"
-        text += (f"\n# Persistent source clone (recon-spec-store-kit cache;\n"
-                 f"# see recon/openspec/specs/repo-cache).\n{line}\n")
-    else:
-        text = f"# Persistent source clone (recon-spec-store-kit cache).\n{line}\n"
+    need = [f"{name}/", f"{name}-corrupt-*"]
+    text = open(gi).read() if os.path.exists(gi) else ""
+    have = {l.strip() for l in text.splitlines()}
+    missing = [l for l in need if l not in have and f"/{l}" not in have]
+    if not missing:
+        return
+    if text and not text.endswith("\n"):
+        text += "\n"
+    text += ("\n# Persistent source clone + recovery quarantine"
+             " (recon-spec-store-kit cache;\n"
+             "# see recon/openspec/specs/repo-cache).\n"
+             + "".join(l + "\n" for l in missing))
     with open(gi, "w") as f:
         f.write(text)
-    print(f"gitignore: added '{line}' to {gi}")
+    print(f"gitignore: added {missing} to {gi}")
 
 
 def main():
@@ -110,6 +115,10 @@ def main():
                     help="tag|sha|branch to check out (strict; detached)")
     ap.add_argument("--dest", default=None,
                     help="clone dir (default <store>/.repo)")
+    ap.add_argument("--rebuild", action="store_true",
+                    help="corruption recovery ONLY: quarantine the existing"
+                         " cache to <dest>-corrupt-YYYYMMDD, then clone"
+                         " fresh (never on auth/server errors)")
     args = ap.parse_args()
 
     dest = args.dest or os.path.join(store_root(), ".repo")
@@ -117,8 +126,21 @@ def main():
                           if args.dest else store_root(), "repo")
     prev = ""
 
+    if args.rebuild and os.path.isdir(os.path.join(dest, ".git")):
+        # Quarantine-first: rename (reversible) BEFORE any clone; never
+        # delete — the corrupt copy outlives recovery by design.
+        stamp = time.strftime("%Y%m%d")
+        q = f"{dest}-corrupt-{stamp}"
+        n = 1
+        while os.path.exists(q):
+            q = f"{dest}-corrupt-{stamp}-{n}"
+            n += 1
+        shutil.move(dest, q)
+        print(f"quarantined: {dest} -> {q}"
+              f" (kept until owner authorizes deletion)")
+
     if not os.path.isdir(os.path.join(dest, ".git")):
-        if os.path.isdir(os.path.join(legacy, ".git")):
+        if os.path.isdir(os.path.join(legacy, ".git")) and not args.rebuild:
             if not url_eq(origin_url(legacy), args.url):
                 sys.stderr.write(
                     f"legacy {legacy} origin '{origin_url(legacy)}' != "
@@ -136,7 +158,8 @@ def main():
                 f"{dest} origin '{origin_url(dest)}' != requested "
                 f"'{args.url}'; refusing to re-point an existing cache.\n")
             raise SystemExit(3)
-        prev = git(["-C", dest, "rev-parse", "HEAD"], check=False)
+        prev = git(["-C", dest, "rev-parse", "--verify", "--quiet", "HEAD"],
+                   check=False)  # empty on unborn HEAD (aborted-clone residue)
 
     # refresh first (requirement: cache up to date before work; and a fresh
     # ref is usually only known after fetch)
