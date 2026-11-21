@@ -38,10 +38,11 @@
    destroyed before access is proven by the clone's own success). A
    staging-dir + swap design was also considered and rejected as more
    moving parts for the same guarantee. The quarantine renames the whole
-   cache including its worktrees; worktree `.git` pointers inside the
-   quarantined copy then point at the renamed tree and are stale-but-harmless
-   (the copy is forensics, not a working view; `git worktree repair` can
-   revive it if ever needed). A wrong-URL `--rebuild` is refused (exit 3)
+   cache including its worktrees; each worktree's git link is stored
+   cache-relative (decision 10), so quarantined worktrees stay usable for
+   inspection, while the cache's back-links to them read stale until
+   `git worktree repair` fixes them in place (verified). A wrong-URL
+   `--rebuild` is refused (exit 3)
    BEFORE any quarantine rename — recovery may never consume a healthy
    cache on a parameter mistake — and `--rebuild` quarantines husk
    directories (no git metadata) that would otherwise deadlock the fresh
@@ -76,20 +77,60 @@
    when the capability is created; without it archive writes a `TBD`
    placeholder that fails strict. Verified chain: change-only strict 1/1 →
    archive → specs created with real Purpose → strict 2/2.
-9. **Bare cache + named worktrees (owner ruling, 2026-11-22).** Worktree
-   footprint was measured before adopting: adding a worktree to the cached
-   repo adds the checked-out working files and small per-worktree metadata
-   only — the object database is shared with **zero new pack objects**
-   (measured: kit worktree +232 KB, pack list unchanged; worst case is one
-   full tree checkout per ACTIVE store branch, e.g. hermes-agent at pin =
-   236 MB / 23,586 files of files, vs 517 MB of objects shared by all).
-   Checkouts therefore live only at `<store>/.repo/wt/<branch>`, named
-   after the spec-store branch each serves (`--wt` overrides; default is
-   the store repo's current branch). `.repo/worktrees/` is git's own admin
+9. **Bare cache + named worktrees (owner ruling, 2026-11-22; measured on
+   hermes-agent, which supersedes this decision's first-draft kit-only
+   estimate).** Baseline bare blobless clone = 198 MB (objects 184 MB);
+   then `main` + the last five releases as worktrees, in order:
+
+   | # | ref | working files | obj-DB step | total step | total vs bare |
+   |---|-----|---------------|-------------|------------|---------------|
+   | 1 | main | 319 MiB | +106 MiB | +428 MiB | 316% |
+   | 2 | v2026.9.7 | 183 MiB | +39 MiB | +223 MiB | 429% |
+   | 3 | v2026.9.11 | 189 MiB | +12 MiB | +202 MiB | 531% |
+   | 4 | v2026.9.14 | 192 MiB | +14 MiB | +207 MiB | 636% |
+   | 5 | v2026.9.21 | 208 MiB | +23 MiB | +233 MiB | 754% |
+   | 6 | v2026.9.24 | 210 MiB | +20 MiB | +231 MiB | 870% |
+
+   Mechanism: a blobless clone lazily fetches each tree's blobs at first
+   checkout (every pack here carries a `.promisor` marker), so the object
+   store DOES grow per new worktree — but only by that tree's **unique**
+   blobs: after the first checkout the step falls to a ~12–39 MiB flat
+   band between adjacent releases (deduplicated across worktrees;
+   saturating, not monotonically shrinking). The first-draft claim "zero
+   new pack objects" was wrong for blobless clones and is retracted —
+   it held only where blobs were already local. Working files are linear
+   and intrinsic (~190–210 MiB per release tree): N concurrent worktrees
+   cost N checkout file trees, so TOTAL footprint is ~linear with a slope
+   far below N clones — 6 refs shared 398 MB of objects where six clones
+   would carry ~1.1 GB. That is why the requirement mandates removing a
+   worktree when its store branch retires: total footprint stays bounded
+   by the number of CONCURRENT active branches — normally one.
+   Checkouts live only at `<store>/.repo/wt/<branch>`, named after the
+   spec-store branch each serves (`--wt` overrides; default is the store
+   repo's current branch). `.repo/worktrees/` is git's own admin
    namespace — putting checkouts there collides with it, so they live in
    `.repo/wt/` instead. Consumers read source files through
    `common.SRC` (the current branch's worktree), never through the bare
    cache root.
+10. **Hybrid worktree git links (owner-prompted hardening, 2026-11-22).**
+    `sync_repo.py` rewrites each worktree's `.git` file to a
+    cache-RELATIVE `gitdir:` link after creation (and upgrades older
+    caches on the next sync); the admin-side
+    `worktrees/<name>/gitdir` file stays ABSOLUTE. Verified on git
+    2.47.3: making BOTH sides relative is unsafe — git resolves the
+    admin-side file literally, judges a LIVE worktree "prunable", and
+    `git worktree prune` then deletes its admin entry, orphaning the
+    checkout. With the hybrid form the full lifecycle is green (worktree
+    list and prune no-op, fetch, force-checkout, second add, remove,
+    fsck) AND a quarantine-renamed cache keeps usable, inspectable
+    worktrees — surviving even relocation of the quarantined copy —
+    without running `git worktree repair`, which remains the fallback
+    for pre-existing renamed caches. git 2.47.3 offers no supported
+    creation-time relative mode: there is no `--relative-paths` flag and
+    `worktree.useRelativePaths` is NOT a real key (git accepts any
+    dotted config silently but the binary contains no such code path —
+    pointers stayed absolute with it set). Never set it globally; the
+    tool rewrites the one file it owns per worktree instead.
 
 ## Notes (not requirements)
 - Scope note (owner, 2026-11-21): the kit's openspec folder intentionally

@@ -28,10 +28,10 @@ clone's named worktrees, inside or outside the store.
 The cache is cloned bare and carries no root checkout; every checkout of the
 source SHALL be a detached linked worktree at
 `<store>/.repo/wt/<branch>`, named after the spec-store branch whose pin it
-serves. Worktrees share the cache's single object database — they add
-working files and metadata, never duplicated history — and when a store
-branch retires its worktree SHALL be removed with `git worktree remove`
-without touching the cache.
+serves. Worktrees share the cache's single object database: each adds
+working files, metadata, and at most its tree's unique lazily-fetched
+blobs. When a store branch retires, its worktree SHALL be removed with
+`git worktree remove` without touching the cache.
 
 #### Scenario: Worktree per store branch
 - **WHEN** `sync_repo.py` runs for store branch `<b>` (default: the store
@@ -39,11 +39,13 @@ without touching the cache.
 - **THEN** `<store>/.repo/wt/<b>` exists, detached at the resolved ref, and
   no second clone exists
 
-#### Scenario: Worktrees add no object duplication
+#### Scenario: Worktrees share one object database
 - **WHEN** a worktree is added under `.repo/wt/`
-- **THEN** the cache's object store gains no pack objects — only the
-  checked-out files and per-worktree metadata — and
-  `git worktree remove` reclaims them
+- **THEN** no history is re-downloaded (commits and trees are shared, and
+  blobs already fetched by any worktree are reused); the object store grows
+  only by the blobs unique to the new tree
+- **AND** `git worktree remove` reclaims the checked-out files; shared
+  objects remain for the other worktrees
 
 ### Requirement: Cache refreshed up to date before recon work
 Agents SHALL run the sync step at the start of any work that reads the
@@ -99,6 +101,10 @@ auto-deleted.
   cloning again from scratch (a cleanly failed clone leaves no directory
   behind, exactly as on first install) or by completing a hard-interrupted
   partial `.git` with its fetch and forced checkout
+- **AND** each worktree's git link is stored relative to the cache, so the
+  quarantined copy's worktrees stay usable for inspection; links from the
+  cache back to its worktrees read stale after the move until
+  `git worktree repair` fixes them in place
 
 #### Scenario: Quarantine lifetime
 - **WHEN** a recovery completes successfully

@@ -148,6 +148,37 @@ def ensure_gitignore(dest):
     print(f"gitignore: added {missing} to {gi}")
 
 
+def relativize_wt_link(dest, wt):
+    """Worktree-side git link -> cache-relative (hybrid form).
+
+    A quarantine-renamed .repo then keeps usable worktrees without any
+    repair (verified 2026-11-22: survives rename AND relocation). The
+    ADMIN-side `gitdir` file must stay ABSOLUTE: it is resolved
+    literally, so a relative admin pointer makes git judge a LIVE
+    worktree "prunable" and `git worktree prune` deletes its admin
+    entry, orphaning the checkout (verified on git 2.47.3). The admin
+    entry's location differs by cache flavor (bare root vs .git/), so
+    git itself is asked for the common dir. Best-effort: an absolute
+    link is fully functional if the rewrite cannot happen.
+    """
+    link = os.path.join(wt, ".git")
+    r = subprocess.run(["git", "-C", wt, "rev-parse", "--git-common-dir"],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        return
+    common = r.stdout.strip()
+    if not os.path.isabs(common):
+        common = os.path.abspath(os.path.join(wt, common))
+    want = "gitdir: " + os.path.relpath(
+        os.path.join(common, "worktrees", os.path.basename(wt)), wt) + "\n"
+    try:
+        if os.path.isfile(link) and open(link).read() != want:
+            with open(link, "w") as fh:
+                fh.write(want)
+    except OSError:
+        pass
+
+
 def quarantine(dest, reason):
     """Rename (reversible) BEFORE anything else; never delete — the copy
     outlives recovery by design until the owner authorizes removal."""
@@ -248,10 +279,12 @@ def main():
         if sha:
             git(["-C", wt, "checkout", "--force", "--detach", sha])
             git(["-C", wt, "clean", "-fdq"], check=False)
+        relativize_wt_link(dest, wt)  # upgrade pre-hybrid caches too
         head = sha or prev
     else:
         os.makedirs(os.path.join(dest, "wt"), exist_ok=True)
         git(["-C", dest, "worktree", "add", "--detach", wt, sha])
+        relativize_wt_link(dest, wt)
         head = sha
 
     ensure_gitignore(dest)
