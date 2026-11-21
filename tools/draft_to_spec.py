@@ -39,13 +39,13 @@ def convert(text: str) -> tuple[str, int]:
     n = len(lines)
 
     def bullets_to_metadata(block: list[str]) -> list[str]:
-        """Convert `- Status|Evidence|Anchor:` bullets (+ indented continuations)
+        """Convert `- Status|Evidence|Anchor|History:` bullets (+ indented continuations)
         into `**Key**:` metadata lines, which the validator excludes from
         requirement text."""
         res: list[str] = []
         k = 0
         while k < len(block):
-            m = re.match(r"^- (Status|Evidence|Anchor):\s*(.*)$", block[k])
+            m = re.match(r"^- (Status|Evidence|Anchor|History):\s*(.*)$", block[k])
             if m:
                 parts = [m.group(2)]
                 j = k + 1
@@ -62,7 +62,7 @@ def convert(text: str) -> tuple[str, int]:
     while i < n:
         line = lines[i]
         # 3. lone evidence bullets outside requirement blocks
-        m = re.match(r"^- (Status|Evidence|Anchor):\s*(.*)$", line)
+        m = re.match(r"^- (Status|Evidence|Anchor|History):\s*(.*)$", line)
         if m:
             parts = [m.group(2)]
             j = i + 1

@@ -27,6 +27,8 @@ The <system/library> SHALL <behavior, testable, present tense>.
 - Evidence: [PR #NNNN](https://github.com/<org>/<repo>/pull/NNNN) — <what it did>; doc: docs/...
   (ref-free repos: [commit <12-hex>] — <subject>; doc: ...)
 - Anchor: `file:line or file` in the pinned tree that implements it (VERIFIED only)
+- History: <optional, append-only pass annotations: never delete existing
+  Evidence/Anchor/History content; corrections are appended with the pass number>
 
 (...repeat; group under `## Sub-areas` if needed)
 
