@@ -52,6 +52,15 @@
    mining needs commit/tree metadata, old blobs rarely; it also minimizes
    the SSD footprint this change is protecting.
 
+8. **Canonical change→archive flow (owner-confirmed 2026-11-21).** Living
+   specs are NOT pre-applied on the change branch: `changes/` holds the
+   delta, and `openspec archive` (post-merge, per team-workflow doctrine —
+   "specs/ moves forward only with work that actually shipped") creates or
+   updates `openspec/specs/`. A `## Purpose` section in the delta is read
+   when the capability is created; without it archive writes a `TBD`
+   placeholder that fails strict. Verified chain: change-only strict 1/1 →
+   archive → specs created with real Purpose → strict 2/2.
+
 ## Notes (not requirements)
 - Scope note (owner, 2026-11-21): the kit's openspec folder intentionally
   tracks ONLY this change's requirements for now. Formally specifying the
