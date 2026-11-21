@@ -30,12 +30,6 @@ checkout the source into any other path of the store.
 - **THEN** `sync_repo.py` refreshes it with `git fetch` and a forced
   detached checkout of the requested ref — no clone, no delete
 
-#### Scenario: Legacy `repo/` adopted once
-- **WHEN** `<store>/.repo` is absent but a legacy `<store>/repo` clone of the
-  same source URL exists
-- **THEN** `sync_repo.py` renames it to `.repo` (one-time adoption, same
-  filesystem) and proceeds as the reuse case
-
 ### Requirement: Cache refreshed up to date before recon work
 Agents SHALL run the sync step at the start of any work that reads the
 source repo, so the cache is current before pin checks, anchor re-opens, or
