@@ -105,6 +105,18 @@
    would carry ~1.1 GB. That is why the requirement mandates removing a
    worktree when its store branch retires: total footprint stays bounded
    by the number of CONCURRENT active branches — normally one.
+   Sequential-checkout comparison (same host/day, ONE non-bare blobless
+   clone moved main → five releases → back to main): the object DB
+   followed the SAME curve (291→398 MiB — the lazy-blob union is a
+   property of the refs visited, not of the worktree model), while
+   working files stayed at ONE tree, so the total held flat at
+   514–720 MiB regardless of refs visited, and returning to main after a
+   full pass added ZERO bytes (every blob already cached). Worktrees pay
+   N × file trees for CONCURRENT views (1724 MiB with six refs live).
+   Conclusion: a single-active-branch store has the SAME footprint as
+   sequential checkout; the worktree premium is purely concurrency —
+   ~+1 file tree per extra branch kept open, bounded by the mandated
+   retire-prune.
    Checkouts live only at `<store>/.repo/wt/<branch>`, named after the
    spec-store branch each serves (`--wt` overrides; default is the store
    repo's current branch). `.repo/worktrees/` is git's own admin
