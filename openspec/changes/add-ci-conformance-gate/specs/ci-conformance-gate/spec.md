@@ -15,8 +15,9 @@ manually dispatchable.
 
 #### Scenario: PR opened or synchronized
 - **WHEN** a pull request targeting `main` is opened or receives new commits
-- **THEN** the check runs against the PR merge ref and reports pass/fail
-  with a stable check name suitable for branch protection
+- **THEN** the check runs against the PR merge ref
+- **AND** reports pass/fail with a stable check name suitable for branch
+  protection
 
 #### Scenario: Manual dispatch
 - **WHEN** the workflow is triggered via `workflow_dispatch`
@@ -29,8 +30,9 @@ and any version bump SHALL arrive in a PR that updates
 
 #### Scenario: Install line is pinned
 - **WHEN** the workflow file is inspected
-- **THEN** the CLI install line names an exact version (no floating tag),
-  matching the CLI generation documented in the validator-rules reference
+- **THEN** the CLI install line names an exact version (no floating tag)
+- **AND** it matches the CLI generation documented in the validator-rules
+  reference
 
 ### Requirement: Read-only, secret-free workflow
 The workflow SHALL declare `contents: read` permissions and SHALL NOT
@@ -39,5 +41,5 @@ expose credentials or write to the repo.
 
 #### Scenario: Least-privilege audit
 - **WHEN** the workflow file is inspected
-- **THEN** `permissions` grants at most `contents: read` and no step reads
-  `${{ secrets.* }}`
+- **THEN** `permissions` grants at most `contents: read`
+- **AND** no step reads `${{ secrets.* }}`
