@@ -25,9 +25,10 @@ The authoritative snapshot (counts, pin, coverage, open gaps, next pass) lives i
 
 ## How it is derived
 
-The spec agent keeps one persistent upstream clone per store — **blobless at
-the pin, at `.repo/`, git-ignored and reused** (fetch to refresh;
-`sync_repo.py`, never re-cloned) — and works in an isolated per-repo store.
+The spec agent keeps one persistent upstream clone per store — **bare
+blobless at the pin, at `.repo/`, git-ignored and reused** (fetch to
+refresh; `sync_repo.py`, never re-cloned) — and works in an isolated
+per-repo store; checkouts are named worktrees under `.repo/wt/<branch>`.
 
 <!-- STORE SETUP: state the evidence model in one sentence: pr-ref (commit
      subjects carry (#NNNN) refs; history is the index) or ref-free (full-log
@@ -58,7 +59,8 @@ openspec store register .
 openspec validate --all --strict --no-interactive
 
 # get the pinned source alongside, the way the agent does
-# (persistent git-ignored clone at .repo/ — fetch-reuse, never re-clone):
+# (persistent git-ignored BARE cache at .repo/ — fetch-reuse, never
+# re-clone; working views appear at .repo/wt/<branch>):
 python3 recon/scripts/sync_repo.py https://github.com/<org>/<repo> --ref <pin-sha-or-tag>
 ```
 

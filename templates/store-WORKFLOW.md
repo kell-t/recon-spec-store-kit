@@ -8,8 +8,10 @@ cluster WORKFLOW.md; this file is repo-local and more specific.
   `recon/RECON_LEDGER.md` PINS and `recon/baseline.txt`.
 - Validation and drift analysis start at the pin and run forward until the
   pin moves.
-- Anchors in specs are `file:line` AT THE PIN — re-locate on a fresh clone
-  of the target branch; never trust pin line numbers blindly.
+- Anchors in specs are `file:line` AT THE PIN — re-locate through the
+  persistent cache (`sync_repo.py` fetches the target branch and opens the
+  worktree named after it; a fresh clone is corrupt-cache recovery only,
+  `--rebuild`); never trust pin line numbers blindly.
 
 ## License tiers (see kit LICENSE-TIERING.md)
 - `recon/LICENSE` = MIT (process IP).

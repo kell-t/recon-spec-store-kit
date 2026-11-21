@@ -34,12 +34,13 @@ first pass: create it from the Phase-0 scope decision.
 
 ## Phase 0 — Scope and pin
 
-1. Sync the persistent source clone (blobless, git-ignored at `.repo/`,
-   reused across sessions — run `sync_repo.py <url> --ref <tag|branch>`;
-   fetch + strict checkout, never re-clone an existing cache). Record and
-   freeze the baseline:
-   `BASELINE=$(git -C .repo rev-parse HEAD)` — store in `evidence/baseline.txt` with
-   date and branch.
+1. Sync the persistent source cache (bare blobless clone, git-ignored at
+   `.repo/`, reused across sessions — run `sync_repo.py <url> --ref <tag|branch>`;
+   fetch + strict worktree update, never re-clone an existing cache). Your
+   working view is the worktree named after your store branch,
+   `.repo/wt/$(git branch --show-current)`. Record and freeze the baseline:
+   `BASELINE=$(git -C .repo/wt/$(git branch --show-current) rev-parse HEAD)`
+   — store in `evidence/baseline.txt` with date and branch.
 2. Survey the repo shape: top-level dirs, language mix, docs locations,
    tags/release history, CONTRIBUTING/AGENTS/README files, LICENSE header.
 3. Count the history: total commits, merge vs squash ratio, whether commit

@@ -32,8 +32,10 @@ mine_evidence.py  ->  mine_relnotes.py  ->  cluster.py
 ## Dependencies
 
 Python 3.9+ stdlib; PyYAML only for `store_config.yaml` (or write
-`store_config.json`). Git present; source clone at `<store>/.repo` (created
-by `sync_repo.py`, reused thereafter).
+`store_config.json`). Git present; source cache is a bare clone at
+`<store>/.repo` with per-branch worktrees at `.repo/wt/<branch>` (created
+and reused by `sync_repo.py`); scripts read source files via `common.SRC`,
+never the bare cache root.
 
 ## Editing law
 
