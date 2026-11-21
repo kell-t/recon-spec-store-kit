@@ -8,6 +8,12 @@
 - [x] tools/README.md table row + dependency line
 - [x] root README.md tree entries (`openspec/`, sync note)
 - [x] `openspec validate --all --strict` green at kit root
-- [x] recovery law (owner 2026-11-21): re-clone = corruption-only, manual, shallow-clone access probe first; auth/server errors never trigger it (spec req 4 + design decision 2 + tool docstring)
-- [ ] post-merge: ARCHIVE this change — move `openspec/changes/add-repo-cache/` to `openspec/changes/archive/` (deltas already reflected in `openspec/specs/` by this PR); kit `openspec/` re-copied verbatim to each store's `recon/openspec/` at the same kit sync; `openspec validate --all --strict` green before and after the move
+- [x] recovery law (owner 2026-11-21): re-clone = corruption-only, manual, QUARANTINE-FIRST (rename `.repo` → `.repo-corrupt-YYYYMMDD` before the fresh clone; never delete; mid-clone failure self-heals on next sync); auth/server errors never trigger it (spec req 4 + design decision 2 + tool docstring)
+- [ ] post-merge: ARCHIVE with `openspec archive add-repo-cache --yes` on
+  main — this CREATES the living specs under `openspec/specs/` from the
+  deltas (their `## Purpose` sections are consumed at creation); commit the
+  created specs + archived folder (signed) and push. Deltas are deliberately
+  NOT pre-applied on the branch (canonical flow, design decision 8). Kit
+  `openspec/` re-copied verbatim to each store's `recon/openspec/` at the
+  same kit sync; `openspec validate --all --strict` green before and after
 - [ ] post-merge fleet adoption (inventory CONFIRMED 2026-11-21 — not a contingency: all three stores carry a legacy `repo/` clone, ~817 MB total: hermes-agent 721 MB @ pin `3b42157858`, gufo 92 MB, tinytuya 4.1 MB). Per store, IN ORDER: (1) run `sync_repo.py <source-url> --ref <pin>` FIRST — it rename-adopts `repo/` → `.repo` on the spot (NEVER re-clone; verify HEAD survived the rename and no fresh clone appeared); (2) re-copy kit scripts (new `common.py` resolves `.repo` strictly — adoption must precede this step or gates lose the clone); (3) confirm `.gitignore` carries `.repo/` (script ensures); (4) copy kit `openspec/` → `recon/openspec/`; (5) ledger line with kit version. Start with tinytuya (smallest; proves the path). — spec agent, per store policy

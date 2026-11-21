@@ -1,3 +1,6 @@
+## Purpose
+Keep the kit's openspec requirements visible to agents working inside each spec store by propagating a copy of the kit `openspec/` folder into every store, so recon flows can consult the rules where the work happens.
+
 ## ADDED Requirements
 
 

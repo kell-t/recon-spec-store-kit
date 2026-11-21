@@ -1,3 +1,6 @@
+## Purpose
+Give every spec store a single persistent, git-ignored source clone (`.repo`) that all recon tooling shares, refreshed by fetch instead of re-cloned per session, so repeated spec work does no redundant download or SSD wear.
+
 ## ADDED Requirements
 
 
