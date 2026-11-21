@@ -9,6 +9,7 @@ the store root is auto-detected from the scripts' location (override: env
 | Script | Phase | Output |
 |---|---|---|
 | `common.py` | — | shared config loader + audit primitives (import, don't run) |
+| `sync_repo.py` | 0 | persistent `<store>/.repo` source clone: blobless clone once, then fetch + strict ref checkout (never re-clone; git-ignored) |
 | `store_config.example.yaml` | — | per-store knobs; copy to `store_config.yaml` |
 | `mine_evidence.py` | 1 | `pr_commits.json`+`pr_index.json` (pr-ref) or `commits.json` (ref-free); doc corpus copy; test inventory |
 | `mine_relnotes.py` | 1 | `evidence/relnote_<ver>.txt` from the in-tree release doc |
@@ -31,7 +32,8 @@ mine_evidence.py  ->  mine_relnotes.py  ->  cluster.py
 ## Dependencies
 
 Python 3.9+ stdlib; PyYAML only for `store_config.yaml` (or write
-`store_config.json`). Git present in `<store>/repo` (the blobless clone).
+`store_config.json`). Git present; source clone at `<store>/.repo` (created
+by `sync_repo.py`, reused thereafter).
 
 ## Editing law
 

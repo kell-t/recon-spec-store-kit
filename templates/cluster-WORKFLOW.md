@@ -21,7 +21,8 @@
       evidence/  scripts/
     WORKFLOW.md                <- repo-local pins/rules
     specs_draft/               <- drafting artifacts
-    repo/                      <- read-only blobless clone at the pin
+    .repo/                     <- read-only persistent blobless clone at the
+                                  pin (git-ignored; sync via sync_repo.py)
     .git/                      <- store-local history
 ```
 

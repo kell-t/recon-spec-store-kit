@@ -18,7 +18,9 @@ STORE = os.environ.get(
     os.path.abspath(os.path.join(SCRIPTS_DIR, os.pardir, os.pardir)))
 DRAFTS = os.path.join(STORE, "specs_draft")
 EV = os.path.join(STORE, "recon", "evidence")
-REPO = os.path.join(STORE, "repo")
+REPO = os.path.join(STORE, ".repo")   # persistent git-ignored source clone;
+# created/refreshed with sync_repo.py (spec: recon/openspec/specs/repo-cache).
+# No fallback to legacy `repo/`: sync_repo.py adopts it once by rename.
 
 _DEFAULTS = {
     "pin_sha": "",

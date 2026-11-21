@@ -37,7 +37,12 @@ recon-spec-store-kit/              <- THIS repo: process IP only
   tools/                           <- generalized script kit (see tools/README.md)
     draft_to_spec.py               <- drafts -> validator-conformant specs
     gate.py                        <- single-command gate over the auditors
-    scripts/...                    <- mine / cluster / tally / audit auditors
+    scripts/...                    <- sync / mine / cluster / tally / audit auditors
+  openspec/                        <- THIS kit's own requirements; a verbatim
+                                      copy goes into every store at
+                                      recon/openspec/ (see
+                                      specs/kit-spec-propagation) so agents
+                                      see them while doing recon
   references/
     openspec-validator-rules.md    <- strict-mode conformance rules (CLI 1.16.x)
     fleet-operations.md            <- drafting-fleet (multi-agent) operational law

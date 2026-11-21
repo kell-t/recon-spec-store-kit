@@ -34,9 +34,11 @@ first pass: create it from the Phase-0 scope decision.
 
 ## Phase 0 — Scope and pin
 
-1. Clone (blobless: `git clone --filter=blob:none`) at the default branch or
-   chosen tag. Record and freeze the baseline:
-   `BASELINE=$(git rev-parse HEAD)` — store in `evidence/baseline.txt` with
+1. Sync the persistent source clone (blobless, git-ignored at `.repo/`,
+   reused across sessions — run `sync_repo.py <url> --ref <tag|branch>`;
+   fetch + strict checkout, never re-clone an existing cache). Record and
+   freeze the baseline:
+   `BASELINE=$(git -C .repo rev-parse HEAD)` — store in `evidence/baseline.txt` with
    date and branch.
 2. Survey the repo shape: top-level dirs, language mix, docs locations,
    tags/release history, CONTRIBUTING/AGENTS/README files, LICENSE header.

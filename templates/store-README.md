@@ -25,7 +25,9 @@ The authoritative snapshot (counts, pin, coverage, open gaps, next pass) lives i
 
 ## How it is derived
 
-The spec agent clones upstream **blobless at the pin** (kept out of git on purpose — see `.gitignore`) and works in an isolated per-repo store.
+The spec agent keeps one persistent upstream clone per store — **blobless at
+the pin, at `.repo/`, git-ignored and reused** (fetch to refresh;
+`sync_repo.py`, never re-cloned) — and works in an isolated per-repo store.
 
 <!-- STORE SETUP: state the evidence model in one sentence: pr-ref (commit
      subjects carry (#NNNN) refs; history is the index) or ref-free (full-log
@@ -55,9 +57,9 @@ Upstream `<repo>` is `<license>`-licensed; this store is derivative documentatio
 openspec store register .
 openspec validate --all --strict --no-interactive
 
-# get the pinned source alongside, the way the agent does:
-git clone --filter=blob:none https://github.com/<org>/<repo> repo
-git -C repo checkout <pin-sha>
+# get the pinned source alongside, the way the agent does
+# (persistent git-ignored clone at .repo/ — fetch-reuse, never re-clone):
+python3 recon/scripts/sync_repo.py https://github.com/<org>/<repo> --ref <pin-sha-or-tag>
 ```
 
 Read order: `recon/RECON_LEDGER.md` (state + gaps) → `openspec/specs/<capability>/spec.md` (requirements) → `recon/evidence/` (bundles, release notes, docs at pin) → `specs_draft/` (per-requirement Status/Evidence/Anchor and scenario notes).
