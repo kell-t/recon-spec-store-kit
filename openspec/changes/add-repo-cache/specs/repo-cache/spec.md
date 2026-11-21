@@ -15,14 +15,15 @@ clone's named worktrees, inside or outside the store.
 #### Scenario: Cache created on first use
 - **WHEN** `<store>/.repo` does not exist
 - **THEN** `tools/scripts/sync_repo.py` creates it as a bare blobless clone
-  (`git clone --bare --filter=blob:none`) of the store's source URL and
-  ensures the store root `.gitignore` ignores `.repo/` and `.repo-old/`
+  (`git clone --bare --filter=blob:none`) of the store's source URL
+- **AND** the script ensures the store root `.gitignore` ignores `.repo/`
+  and `.repo-old/`
 
 #### Scenario: Cache reused, never re-cloned
 - **WHEN** `<store>/.repo` already exists for the same source URL
 - **THEN** `sync_repo.py` refreshes it with `git fetch` and a forced
-  detached update of the requested ref's named worktree — no clone, no
-  delete
+  detached update of the requested ref's named worktree
+- **AND** no clone and no delete occur
 
 ### Requirement: Source checkouts are named worktrees under the cache
 The cache is cloned bare and carries no root checkout; every checkout of the
@@ -36,16 +37,16 @@ blobs. When a store branch retires, its worktree SHALL be removed with
 #### Scenario: Worktree per store branch
 - **WHEN** `sync_repo.py` runs for store branch `<b>` (default: the store
   repo's current branch)
-- **THEN** `<store>/.repo/wt/<b>` exists, detached at the resolved ref, and
-  no second clone exists
+- **THEN** `<store>/.repo/wt/<b>` exists, detached at the resolved ref
+- **AND** no second clone exists
 
 #### Scenario: Worktrees share one object database
 - **WHEN** a worktree is added under `.repo/wt/`
 - **THEN** no history is re-downloaded (commits and trees are shared, and
-  blobs already fetched by any worktree are reused); the object store grows
-  only by the blobs unique to the new tree
-- **AND** `git worktree remove` reclaims the checked-out files; shared
-  objects remain for the other worktrees
+  blobs already fetched by any worktree are reused)
+- **AND** the object store grows only by the blobs unique to the new tree
+- **AND** `git worktree remove` reclaims the checked-out files while
+  shared objects remain for the other worktrees
 
 ### Requirement: Cache refreshed up to date before recon work
 Agents SHALL run the sync step at the start of any work that reads the
@@ -57,14 +58,15 @@ different ref).
 
 #### Scenario: Ref present after fetch
 - **WHEN** `sync_repo.py --ref <tag|sha|branch>` resolves the ref after fetch
-- **THEN** the tool creates or force-updates that branch's worktree detached
-  at the commit and prints the resolved full SHA for the ledger line
+- **THEN** the tool creates or force-updates that branch's worktree
+  detached at the commit
+- **AND** prints the resolved full SHA for the ledger line
 
 #### Scenario: Ref missing after fetch
 - **WHEN** the requested ref cannot be resolved locally or on `origin` after
   fetch
-- **THEN** the tool exits non-zero with a message naming the ref and changes
-  nothing in the checkout
+- **THEN** the tool exits non-zero with a message naming the ref
+- **AND** changes nothing in the checkout
 
 ### Requirement: `.repo` treated as disposable cache
 The cache and its worktrees SHALL be treated as read-only views for recon
@@ -107,5 +109,6 @@ timeouts) SHALL NOT trigger recovery.
 #### Scenario: Undo slot rolls
 - **WHEN** a recovery runs while `.repo-old` already exists
 - **THEN** the previous undo copy is deleted as the new one takes its
-  place — the slot holds only the most recent previous cache, and no
-  store work ever reads it
+  place
+- **AND** the slot holds only the most recent previous cache
+- **AND** no store work ever reads it
