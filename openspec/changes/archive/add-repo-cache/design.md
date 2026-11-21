@@ -11,7 +11,17 @@
 2. **Fetch, don't re-clone.** The clone is a cache: `sync_repo.py` clones
    only when absent, otherwise `git fetch --prune --tags` + forced detached
    checkout + `git clean -fd`. Re-cloning is a recovery action for a
-   corrupted cache only, and is manual, not part of any documented flow.
+   **corrupted cache only**, and is manual, not part of any documented
+   flow. Corruption means local object-store damage (`git fsck` failures,
+   unreadable refs, index corruption) — NOT authentication or server
+   errors: a 403/401, rate limit, or 5xx says nothing about the local
+   clone, and re-cloning under such a transient failure deletes a perfectly
+   good 700 MB+ cache for nothing. Recovery therefore proceeds in two
+   steps: (1) probe access first with a throwaway **shallow clone**
+   (`git clone --depth 1 <url> <scratch>`) — if the probe fails, the
+   problem is upstream (credentials/network/service) and the cache must be
+   left in place untouched; (2) only after the probe succeeds and
+   corruption is confirmed locally, delete `.repo` and re-run sync.
 3. **Strict ref resolution (pin law).** After fetch the requested
    tag/sha/branch must resolve (local, then `origin/<ref>`, then
    `refs/tags/<ref>`); otherwise exit non-zero leaving the checkout

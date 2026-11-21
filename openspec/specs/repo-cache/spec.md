@@ -65,3 +65,24 @@ it.
 - **WHEN** a previous run left `<store>/.repo` with local modifications
 - **THEN** the sync step resets it to the requested ref (force checkout +
   clean of untracked files) rather than failing
+
+### Requirement: Re-cloning only as access-probed corruption recovery
+Deleting and re-creating `<store>/.repo` SHALL be a recovery action for a
+locally corrupted clone only (`git fsck` failure, unreadable refs, index
+damage), performed manually; authentication or server errors (401/403, rate
+limits, 5xx, timeouts) SHALL NOT trigger recovery — they say nothing about
+the local clone — and recovery SHALL begin with an access probe via a
+throwaway shallow clone (`git clone --depth 1`) before the existing cache
+is touched.
+
+#### Scenario: Transient failure preserves the cache
+- **WHEN** a sync fails with an authentication, rate-limit, or server error
+- **THEN** the existing `.repo` is left in place and no re-clone is
+  attempted (the failure is upstream, not local)
+
+#### Scenario: Recovery probes access before deleting
+- **WHEN** local corruption is confirmed and recovery is started
+- **THEN** a shallow clone (`--depth 1`) into a scratch directory first
+  proves credentials and server access; only if the probe succeeds may
+  `.repo` be deleted and re-synced — a failing probe aborts recovery with
+  the cache intact

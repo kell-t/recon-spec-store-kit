@@ -17,6 +17,9 @@ anew, and nothing kept an existing clone up to date.
   (`sync_repo.py`, `.repo`, "refresh, don't re-clone").
 - New kit `openspec/` folder tracking these requirements, propagated to
   every store at `recon/openspec/` (capability `kit-spec-propagation`).
+- Recovery law for the cache: re-clone only for locally confirmed
+  corruption, manually, and only after a shallow-clone access probe
+  succeeds; auth/server errors never justify deleting the cache.
 
 ## Impact
 - Affected specs: `repo-cache` (new), `kit-spec-propagation` (new).

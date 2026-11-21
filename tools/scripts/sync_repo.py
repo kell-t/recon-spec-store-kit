@@ -4,6 +4,11 @@
 Spec: openspec/specs/repo-cache/spec.md (kit). The clone is a CACHE: clone
 once (blobless), then keep it current with fetch + forced detached checkout.
 Never delete-and-reclone in normal flow; never edit or commit inside it.
+Corruption recovery is manual and two-step: probe access first with a
+throwaway shallow clone (`git clone --depth 1 <url> <scratch>`); only on a
+successful probe AND locally confirmed corruption (git fsck) may .repo be
+deleted and re-synced. Auth/server errors (401/403, rate limit, 5xx) are
+NEVER grounds to delete the cache — the failure is upstream, not local.
 
 Usage:
   sync_repo.py <source-url> [--ref <tag|sha|branch>] [--dest DIR]
