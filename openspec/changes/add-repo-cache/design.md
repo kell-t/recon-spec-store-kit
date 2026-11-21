@@ -20,8 +20,12 @@
    either reversible (rename) or additive (clone into an empty path) — so
    no failure mode can lose data: if the fresh clone fails mid-recovery,
    the quarantine still holds the old copy, and the next run of
-   `sync_repo.py` finds `.repo` missing and simply clones it again — the
-   same code path as a first-time install. The sick copy
+   `sync_repo.py` restores the cache — verified empirically on 2026-11-21
+   with SIGKILL mid-clone: a *cleanly* failed clone leaves no directory
+   (git cleans up; next run clones as on first install), and a
+   **hard-killed partial `.git`** (objects present, HEAD unborn) is healed
+   by the next run's fetch + forced checkout (recovered to a healthy HEAD,
+   rc=0). The sick copy
    survives as quarantine until the owner authorizes deletion. An earlier
    draft required a shallow-clone access probe; it was superseded — the
    ordering itself makes the probe redundant (nothing is consumed or

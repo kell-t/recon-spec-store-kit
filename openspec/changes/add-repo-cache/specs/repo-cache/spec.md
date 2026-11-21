@@ -66,9 +66,11 @@ recovery; the quarantined copy SHALL never be auto-deleted.
   equivalent) on a confirmed-corrupt cache
 - **THEN** `.repo` is renamed to `.repo-corrupt-YYYYMMDD` first and only
   then is the fresh blobless clone created at `.repo` — if that clone
-  fails (network down mid-recovery), nothing is lost: the quarantined copy
-  remains, and the next ordinary sync run simply finds `.repo` missing and
-  clones it again, exactly as on first install
+  fails, nothing is lost: the quarantined copy remains and the next
+  ordinary sync run restores the cache, either by cloning again from
+  scratch (a cleanly failed clone leaves no directory behind, exactly as
+  on first install) or by completing a hard-interrupted partial `.git`
+  with its fetch and forced checkout
 
 #### Scenario: Quarantine lifetime
 - **WHEN** a recovery completes successfully

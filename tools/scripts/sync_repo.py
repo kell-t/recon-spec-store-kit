@@ -28,7 +28,10 @@ Behavior:
     wrong store/URL, do not silently re-point a cache.
   - ref unresolvable after fetch -> exit 2, checkout untouched (pin law:
     never silently fall back to a different ref).
-  - Ensures the store root .gitignore ignores `.repo/`.
+  - Ensures the store root .gitignore ignores `.repo/` and `.repo-corrupt-*`.
+  - Mid-clone interruption needs no special handling: a clean git clone
+    failure removes its directory; a hard-killed partial .git is completed
+    by the next run's fetch + forced checkout (verified 2026-11-21).
 
 Prints machine-readable tail lines for ledger capture:
   DEST=<abs path>  HEAD=<full sha>  [PREV=<full sha>]
@@ -155,7 +158,8 @@ def main():
                 f"{dest} origin '{origin_url(dest)}' != requested "
                 f"'{args.url}'; refusing to re-point an existing cache.\n")
             raise SystemExit(3)
-        prev = git(["-C", dest, "rev-parse", "HEAD"], check=False)
+        prev = git(["-C", dest, "rev-parse", "--verify", "--quiet", "HEAD"],
+                   check=False)  # empty on unborn HEAD (aborted-clone residue)
 
     # refresh first (requirement: cache up to date before work; and a fresh
     # ref is usually only known after fetch)
