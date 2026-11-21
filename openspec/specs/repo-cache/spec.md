@@ -60,23 +60,28 @@ it.
 - **THEN** the sync step resets it to the requested ref (force checkout +
   clean of untracked files) rather than failing
 
-### Requirement: Re-cloning only as access-probed corruption recovery
-Deleting and re-creating `<store>/.repo` SHALL be a recovery action for a
-locally corrupted clone only (`git fsck` failure, unreadable refs, index
-damage), performed manually; authentication or server errors (401/403, rate
-limits, 5xx, timeouts) SHALL NOT trigger recovery — they say nothing about
-the local clone — and recovery SHALL begin with an access probe via a
-throwaway shallow clone (`git clone --depth 1`) before the existing cache
-is touched.
+### Requirement: Re-cloning only as quarantine-first corruption recovery
+Deleting and re-creating `<store>/.repo` SHALL be a manual recovery for a
+locally confirmed corrupted clone (`git fsck` failure, unreadable refs,
+index damage) only, and it SHALL quarantine first: rename `.repo` to
+`.repo-corrupt-YYYYMMDD` BEFORE the fresh clone begins. Authentication or
+server errors (401/403, rate limits, 5xx, timeouts) SHALL NOT trigger
+recovery; the quarantined copy SHALL never be auto-deleted.
 
 #### Scenario: Transient failure preserves the cache
 - **WHEN** a sync fails with an authentication, rate-limit, or server error
-- **THEN** the existing `.repo` is left in place and no re-clone is
-  attempted (the failure is upstream, not local)
+- **THEN** the existing `.repo` is left in place untouched — recovery is
+  not a response to upstream trouble
 
-#### Scenario: Recovery probes access before deleting
-- **WHEN** local corruption is confirmed and recovery is started
-- **THEN** a shallow clone (`--depth 1`) into a scratch directory first
-  proves credentials and server access; only if the probe succeeds may
-  `.repo` be deleted and re-synced — a failing probe aborts recovery with
-  the cache intact
+#### Scenario: Quarantine precedes re-clone
+- **WHEN** recovery runs (`sync_repo.py --rebuild` or the manual
+  equivalent) on a confirmed-corrupt cache
+- **THEN** `.repo` is renamed to `.repo-corrupt-YYYYMMDD` first and only
+  then is the fresh blobless clone created at `.repo` — a clone failure at
+  that point leaves the quarantine intact and `.repo` absent, a defined
+  state ordinary sync re-creates from
+
+#### Scenario: Quarantine lifetime
+- **WHEN** a recovery completes successfully
+- **THEN** the corrupt copy stays on disk until the owner authorizes its
+  deletion
