@@ -38,6 +38,10 @@ recon-spec-store-kit/              <- THIS repo: process IP only
     draft_to_spec.py               <- drafts -> validator-conformant specs
     gate.py                        <- single-command gate over the auditors
     scripts/...                    <- sync / mine / cluster / tally / audit auditors
+  .github/workflows/
+    openspec-validate.yml          <- deterministic strict-conformance CI gate
+                                      (free standard runner, public repo;
+                                      structure only — see ci-conformance-gate)
   openspec/                        <- THIS kit's own requirements; a verbatim
                                       copy goes into every store at
                                       recon/openspec/ (see
