@@ -65,9 +65,10 @@ recovery; the quarantined copy SHALL never be auto-deleted.
 - **WHEN** recovery runs (`sync_repo.py --rebuild` or the manual
   equivalent) on a confirmed-corrupt cache
 - **THEN** `.repo` is renamed to `.repo-corrupt-YYYYMMDD` first and only
-  then is the fresh blobless clone created at `.repo` — a clone failure at
-  that point leaves the quarantine intact and `.repo` absent, a defined
-  state ordinary sync re-creates from
+  then is the fresh blobless clone created at `.repo` — if that clone
+  fails (network down mid-recovery), nothing is lost: the quarantined copy
+  remains, and the next ordinary sync run simply finds `.repo` missing and
+  clones it again, exactly as on first install
 
 #### Scenario: Quarantine lifetime
 - **WHEN** a recovery completes successfully

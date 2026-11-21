@@ -18,8 +18,10 @@
    `.repo` → `.repo-corrupt-YYYYMMDD`, THEN clone fresh into `.repo`.
    This ordering removes the destructive step entirely — every operation is
    either reversible (rename) or additive (clone into an empty path) — so
-   no failure mode can lose data: pre-clone failure leaves a defined
-   absent-`.repo` state (ordinary sync re-creates), and the sick copy
+   no failure mode can lose data: if the fresh clone fails mid-recovery,
+   the quarantine still holds the old copy, and the next run of
+   `sync_repo.py` finds `.repo` missing and simply clones it again — the
+   same code path as a first-time install. The sick copy
    survives as quarantine until the owner authorizes deletion. An earlier
    draft required a shallow-clone access probe; it was superseded — the
    ordering itself makes the probe redundant (nothing is consumed or
