@@ -8,6 +8,11 @@ name: openspec-validate
 on:
   pull_request:
     branches: [main]
+    # Explicit types: the bare default includes ALL activity types (edited,
+    # review_requested, ...) which re-ran the gate on title/body edits and
+    # cancelled in-flight runs via the concurrency group. Spec R1: opened or
+    # new commits — nothing else gates.
+    types: [opened, synchronize, reopened]
   push:
     # Post-merge tripwire: verify what actually lands on main (advisory
     # record of health; the PR gate stays the authoritative merge control).

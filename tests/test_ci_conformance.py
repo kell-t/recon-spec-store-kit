@@ -40,7 +40,14 @@ def steps(wf):
 @spec_case(CHANGE, R1, "PR opened or synchronized")
 def test_pr_opened_or_synchronized(wf):
     t = triggers(wf)
-    assert t["pull_request"]["branches"] == ["main"]
+    pr = t["pull_request"]
+    assert pr["branches"] == ["main"]
+    # spec WHEN: opened or receives new commits ONLY. The bare `pull_request`
+    # default enables EVERY activity type — an API body/title edit (`edited`)
+    # would re-run the gate and cancel the in-flight run (observed on
+    # f345e79/9f39b2a); an explicit list is the conformance-correct shape.
+    assert pr.get("types") is not None, "types must be explicit, not default"
+    assert set(pr["types"]) == {"opened", "synchronize", "reopened"}
     runs = [s.get("run", "") for s in steps(wf)]
     assert any("openspec validate --all --strict" in r for r in runs)
     # merge ref: default actions/checkout on pull_request checks out the

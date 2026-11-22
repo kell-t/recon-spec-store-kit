@@ -14,7 +14,8 @@ Every pull request targeting `main` SHALL run
 manually dispatchable.
 
 #### Scenario: PR opened or synchronized
-- **WHEN** a pull request targeting `main` is opened or receives new commits
+- **WHEN** a pull request targeting `main` is opened, receives new commits,
+  or is reopened
 - **THEN** the check runs against the PR merge ref
 - **AND** reports pass/fail with a stable check name suitable for branch
   protection
