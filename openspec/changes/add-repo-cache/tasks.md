@@ -29,3 +29,16 @@
       24 checks — 11 offline, 13 `@network` (real GitHub origins only: local
       transports cannot serve blobless lazy fetches). `tests/requirements.txt`
       for the venv. Suite supersedes the authoring-time dev battery.
+
+## Post-merge: archive moves scenarios — amend test claims (owner, 2026-11-22)
+- [ ] After merge, `openspec archive add-repo-cache --yes` relocates this
+      delta; the scenarios' authoritative source becomes
+      `openspec/specs/<capability>/spec.md`. IMMEDIATELY amend the test
+      claims (the stale-claim meta test fails until this lands, naming
+      every file): `tests/test_repo_cache.py`
+      `CHANGE = "add-repo-cache"` -> `CHANGE = "spec:repo-cache"`;
+      `tests/test_kit_spec_propagation.py` -> `CHANGE =
+      "spec:kit-spec-propagation"`. Requirement/scenario titles themselves
+      are unchanged by archive, so ONLY the source constants flip. Re-run
+      `pytest tests` + strict validate green in the same follow-up commit;
+      that commit is also where the kit-side PIN line advances (PIN law).

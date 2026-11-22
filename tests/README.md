@@ -15,6 +15,10 @@ pip install -r tests/requirements.txt
 ```
 
 ## Running
+- Run the whole suite (`pytest tests`), never the meta file alone: the
+  traceability tests read the registry built while the other test modules
+  are collected, so a lone `pytest tests/test_spec_traceability.py` fails
+  with an empty registry (harness artifact, not drift).
 ```bash
 pytest -m "not network"     # offline tier: unit + traceability meta tests
 pytest                      # full tier: clones real GitHub origins (small)
@@ -28,6 +32,11 @@ pytest                      # full tier: clones real GitHub origins (small)
   test; update the decorator or delete the test.
 - Helper-only tests carry `@aux("reason")` and do not count as scenario
   coverage.
+- Post-archive claims: once a change is archived, its living scenarios move
+  to `openspec/specs/<cap>/spec.md`; flip the test's `CHANGE` constant to
+  `"spec:<cap>"` (see the change's post-merge tasks). The stale-claim meta
+  test fails until the flip lands, naming each affected test — the
+  amendment can never be silently forgotten.
 - Real GitHub origins only: local-path transports cannot serve blobless
   (partial-clone) lazy fetches. `twitter/bootstrap` is used as a genuinely
   MOVED slug (canonical `twbs/bootstrap`) to exercise the live
