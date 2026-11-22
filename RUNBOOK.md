@@ -49,6 +49,10 @@ Conventions used below:
    from `repo_config.yaml` scope, evidence-model sentence from Phase 0,
    status snapshot from the first tally) before the first push; it links
    back to this kit.
+   Copy this kit's `openspec/` folder → `<store>/recon/openspec/` (verbatim
+   — the kit's own requirements, propagated so agents see them when doing
+   recon; read-only in the store, refreshed on every kit re-sync; see
+   `openspec/specs/kit-spec-propagation`).
 6. Copy the tool kit: `tools/draft_to_spec.py` → `<store>/tools/` (or keep a
    shared cluster copy); everything in `tools/scripts/` →
    `<store>/recon/scripts/`; copy `store_config.example.yaml` →
@@ -60,11 +64,18 @@ Conventions used below:
 
 ## 2. Phase 0 — scope and pin
 
-1. Blobless clone at the default branch (or at the chosen release tag):
-   `git clone --filter=blob:none https://github.com/<org>/<repo> <store>/repo`.
-2. Freeze the baseline: `BASELINE=$(git -C repo rev-parse HEAD)`; write
-   `recon/evidence/baseline.txt` with SHA + date + branch/tag. Also record
-   it in `repo_config.yaml` (`repo.pin_*`) and the ledger's PINS section.
+1. Sync the persistent source cache (bare blobless clone, git-ignored,
+   reused across sessions — never re-clone what `.repo` already holds):
+   `python3 recon/scripts/sync_repo.py https://github.com/<org>/<repo> --ref <tag|branch>`
+   → `<store>/.repo` plus a worktree of the ref named after your store
+   branch (`.repo/wt/<branch>`; creates on first use; fetch + strict
+   worktree update after; see `openspec/specs/repo-cache`). Ensure
+   `.gitignore` covers `.repo/` (the script does this).
+2. Freeze the baseline:
+   `BASELINE=$(git -C .repo/wt/$(git branch --show-current) rev-parse HEAD)`;
+   write `recon/evidence/baseline.txt` with SHA + date + branch/tag. Also
+   record it in `repo_config.yaml` (`repo.pin_*`) and the ledger's PINS
+   section.
 3. Copy the source LICENSE → `<store>/openspec/LICENSE`.
 4. Survey the shape: top-level dirs, language mix, doc locations
    (README/CONTRIBUTING/AGENTS/per-area guides), tags, `LICENSE` header.
