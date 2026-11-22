@@ -11,7 +11,7 @@ import pytest
 from conftest import MOVED_CANONICAL, MOVED_URL, KIT_URL, git, sync
 from specmap import aux, spec_case
 
-CHANGE = "add-repo-cache"
+CHANGE = "spec:repo-cache"  # living spec (add-repo-cache archived 2026-11-22)
 R1 = "One persistent git-ignored clone at `.repo`"
 R2 = "Source checkouts are named worktrees under the cache"
 R3 = "Cache refreshed up to date before recon work"

@@ -16,7 +16,7 @@ import pytest
 from conftest import KIT
 from specmap import spec_case
 
-CHANGE = "add-repo-cache"  # change dir; capability is kit-spec-propagation
+CHANGE = "spec:kit-spec-propagation"  # living spec (add-repo-cache archived 2026-11-22)
 RA = "Kit openspec copy present in every store"
 RB = "Copy refreshed whole; PIN currency owned by the kit"
 
@@ -70,8 +70,7 @@ def test_refresh_on_kit_sync(store):
     refresh(store)                                 # store re-syncs the kit
     assert tree_diff(KIT_OPENSPEC, dst) == []      # verbatim again
     # the ledger duty is consultable INSIDE the copy the store just received
-    propagated = (dst / "changes" / "add-repo-cache" / "specs" /
-                  "kit-spec-propagation" / "spec.md")
+    propagated = dst / "specs" / "kit-spec-propagation" / "spec.md"
     assert propagated.is_file()
     assert "kit version + copy date" in propagated.read_text()
 
@@ -97,7 +96,7 @@ def test_refresh_replaces_never_patches(store):
     dst = store / "recon" / "openspec"
     # a patch-style merge would keep these; a wholesale replacement must not
     (dst / "stale_from_old_kit.md").write_text("obsolete")
-    deep = dst / "changes" / "add-repo-cache"
+    deep = dst / "specs" / "kit-spec-propagation"
     (deep / "stale_task.md").write_text("obsolete")
     refresh(store)
     assert tree_diff(KIT_OPENSPEC, dst) == []      # zero residue, zero edits
@@ -123,5 +122,4 @@ def test_archive_advances_kit_side_pin(store):
     assert copy_pin.read_bytes() == pin.read_bytes()
     # stores record versions in their OWN ledger, never in the copy:
     assert "stores record kit versions in their own ledgers" in \
-        (KIT_OPENSPEC / "changes" / "add-repo-cache" / "specs" /
-         "kit-spec-propagation" / "spec.md").read_text()
+        (KIT_OPENSPEC / "specs" / "kit-spec-propagation" / "spec.md").read_text()
