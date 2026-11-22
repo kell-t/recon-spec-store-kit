@@ -103,7 +103,8 @@ def test_least_privilege_audit(wf):
 # --- R4 ------------------------------------------------------------------
 @spec_case(CHANGE, R4, "Tests job runs both gates green")
 def test_tests_job_runs_both_gates(wf):
-    assert set(wf["jobs"]) == {"validate", "tests"}   # two independent gates
+    # two PR gates; post-merge (R7) exists in the file but is main-only
+    assert set(wf["jobs"]) == {"validate", "tests", "post-merge"}
     tj = wf["jobs"]["tests"]
     assert tj["runs-on"] == "ubuntu-latest"
     runs = "\n".join(s.get("run", "") for s in tj["steps"])
@@ -131,7 +132,9 @@ def test_tests_job_secret_free(wf):
 def test_push_to_main_runs_both_gates(wf):
     t = triggers(wf)
     assert t["push"]["branches"] == ["main"]
-    assert set(wf["jobs"]) == {"validate", "tests"}   # same two jobs fire
+    # validate+tests fire on push too; post-merge (R7) is the third job,
+    # main-only, and carries the obligation signal rather than a gate pair
+    assert set(wf["jobs"]) == {"validate", "tests", "post-merge"}
     # the tripwire adds a trigger, not a third job or a permissive scope:
     # no all-branch push, and the PR gate keeps its merge-ref guarantee
     # (pull_request trigger still present, scoped to main)
@@ -169,3 +172,43 @@ def test_post_rehearsal_validation_by_name(wf):
     step = steps(wf)[names.index("strict validate (post-rehearsal)")]
     assert step["run"].strip() == \
         "openspec validate --all --strict --no-interactive"
+
+
+# --- R7 ------------------------------------------------------------------
+R7 = "Post-merge obligations are surfaced on main pushes"
+
+
+def pm_run(wf):
+    return wf["jobs"]["post-merge"]["steps"][-1]["run"]
+
+
+@spec_case(CHANGE, R7, "Unarchived change turns main red")
+def test_post_merge_names_unarchived(wf):
+    run = pm_run(wf)
+    # every dir under openspec/changes except archive/ is an open obligation
+    assert 'openspec/changes/*/' in run
+    assert '"$id" = "archive"' in run
+    assert "unarchived change on main" in run
+
+
+@spec_case(CHANGE, R7, "Unchecked tasks turn main red")
+def test_post_merge_scans_tasks(wf):
+    run = pm_run(wf)
+    # recursive tasks.md scan, archived changes included; file:line printed
+    assert "grep -rn --include=tasks.md" in run
+    assert "^[[:space:]]*- \\[ \\]" in run
+    assert "unchecked task:" in run
+
+
+@spec_case(CHANGE, R7, "A completed main passes and says so")
+def test_post_merge_green_says_owed_nothing(wf):
+    run = pm_run(wf)
+    assert "main owes nothing" in run
+    assert "exit $rc" in run
+
+
+@spec_case(CHANGE, R7, "Pull requests are exempt from main obligations")
+def test_post_merge_pr_exempt(wf):
+    # a change branch legitimately carries an open delta + unchecked tasks;
+    # the obligation gate is main-push-only
+    assert wf["jobs"]["post-merge"]["if"] == "github.event_name == 'push'"

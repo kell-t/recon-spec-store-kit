@@ -37,6 +37,20 @@
    overage — all N/A here). Larger runners are billed even on public
    repos and must not be used.
 
+### Decision 15: main-green as the machine-readable obligation ledger
+The monitor agent previously inferred pending post-merge work by diffing
+the unarchived-changes directory set. That covers the archive duty but
+not forgotten post-archive amendments, and it requires the agent to know
+the kit's layout. R7 moves the truth into CI: `post-merge status` fails
+while any obligation is open — unarchived change, or unchecked task in
+ANY tasks.md including archived ones (owner ruling: green must mean
+nothing owed, archived included). Consequences accepted: (a) every
+completed task MUST be checked off in the commit that completes it —
+the monitor's archive/amendment duty therefore includes checking boxes
+VERIFIED done (never blind); (b) between a merge and its archive, main
+is intentionally red — that is the handoff signal, not an alarm; (c) the
+job is pure shell on the checkout (no node/openspec install needed).
+
 ## Notes (not requirements)
 - Merge latency for archive remains ≤1 daily pass unless the owner later
   wires the Hermes webhook route (planned separately; HMAC route bound to

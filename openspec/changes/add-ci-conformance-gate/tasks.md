@@ -34,3 +34,9 @@
 - [x] explicit post-rehearsal strict validate step (scenario
       "Post-rehearsal specs validated by name") — visibility law: silent
       validation is unauditable in CI logs
+- [x] post-merge status job on pushes to main (requirement
+      "Post-merge obligations are surfaced on main pushes", 4 scenarios):
+      unarchived change or any unchecked tasks.md item (archived
+      included) holds main red; green main = nothing owed; PR branches
+      exempt. Monitor agent reads this check as its work signal and
+      checks off VERIFIED-done tasks in the commit that completes them.

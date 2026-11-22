@@ -106,3 +106,38 @@ merge.
 - **WHEN** the archive rehearsals complete
 - **THEN** a final strict validation run lists every living spec,
   including the ones the rehearsals just produced, in the check output
+
+### Requirement: Post-merge obligations are surfaced on main pushes
+On pushes to `main` the workflow SHALL run a `post-merge status` job that
+fails while the repository still owes post-merge work at that commit: a
+change directory outside `openspec/changes/archive/`, or an unchecked
+task item in any `tasks.md` under `openspec/changes/`, archived
+included. A green main commit SHALL therefore mean every obligation of
+that commit — archiving and post-archive amendments included — is
+closed, making the check status alone a machine-readable work signal.
+
+#### Scenario: Unarchived change turns main red
+- **WHEN** a push lands on `main` while a change directory sits outside
+  `openspec/changes/archive/`
+- **THEN** the post-merge status job fails
+- **AND** names the pending change id in the check output
+
+#### Scenario: Unchecked tasks turn main red
+- **WHEN** a push lands on `main` while any `tasks.md` under
+  `openspec/changes/` carries an unchecked task item
+- **THEN** the post-merge status job fails
+- **AND** prints the file and line of each unchecked item, archived
+  changes included
+
+#### Scenario: A completed main passes and says so
+- **WHEN** a push lands on `main` with no unarchived change and no
+  unchecked task item anywhere under `openspec/changes/`
+- **THEN** the post-merge status job passes
+- **AND** states that main owes nothing
+
+#### Scenario: Pull requests are exempt from main obligations
+- **WHEN** the workflow event is a pull request
+- **THEN** the post-merge status job does not run
+- **AND** the branch is judged only by validation, tests, and the
+  archive rehearsal, since a change branch legitimately carries an
+  open delta and unchecked post-merge tasks
