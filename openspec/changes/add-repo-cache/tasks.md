@@ -20,3 +20,12 @@
   `openspec/` re-copied verbatim to each store's `recon/openspec/` at the
   same kit sync; `openspec validate --all --strict` green before and after
 - [ ] post-merge fleet adoption (inventory CONFIRMED 2026-11-21 — not a contingency: all three stores carry a legacy `repo/` clone, ~817 MB total: hermes-agent 721 MB @ pin `3b42157858`, gufo 92 MB, tinytuya 4.1 MB). Per store, IN ORDER: (1) run `sync_repo.py <source-url> --ref <pin>` FIRST — it rename-adopts `repo/` → `.repo` on the spot (NEVER re-clone; adopted caches stay non-bare — the tool attaches the named worktree `.repo/wt/<branch>` the same way; verify HEAD survived the rename and no fresh clone appeared); (2) re-copy kit scripts (new `common.py` resolves `.repo` strictly and reads source files via `common.SRC` = the branch worktree — adoption must precede this step or gates lose the clone; after a passing gate the owner MAY reclaim the vestigial root checkout's disk); (3) confirm `.gitignore` carries `.repo/` (script ensures); (4) copy kit `openspec/` → `recon/openspec/`; (5) ledger line with kit version. Start with tinytuya (smallest; proves the path). — spec agent, per store policy
+
+## Verification tests (owner request 2026-11-22 — no requirements changed)
+- [x] `tests/` pytest suite at KIT level (outside any spec store): one test
+      per scenario across both change-deltas on this branch, tagged with the
+      exact requirement/scenario titles (`tests/specmap.py`); the traceability
+      meta tests FAIL in both directions when spec and tests drift.
+      24 checks — 11 offline, 13 `@network` (real GitHub origins only: local
+      transports cannot serve blobless lazy fetches). `tests/requirements.txt`
+      for the venv. Suite supersedes the authoring-time dev battery.
