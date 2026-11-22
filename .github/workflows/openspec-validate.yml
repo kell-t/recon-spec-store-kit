@@ -1,0 +1,31 @@
+name: openspec-validate
+# Deterministic conformance gate: parses the kit's openspec/ markdown and
+# enforces the strict rule table (references/openspec-validator-rules.md).
+# Structural soundness ONLY — content truth stays with the store gates and
+# the spec agent. Standard runner on a PUBLIC repo = free, no minute
+# accounting; never switch to a "larger runner" (billed even on public).
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openspec-validate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: install pinned validator
+        run: npm install -g @fission-ai/openspec@1.16.1
+      - name: strict validate
+        run: openspec validate --all --strict --no-interactive
