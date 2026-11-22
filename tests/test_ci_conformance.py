@@ -17,6 +17,7 @@ R1 = "Strict conformance check on every pull request"
 R2 = "Pinned validator version"
 R3 = "Read-only, secret-free workflow"
 R4 = "Requirements conformity tests run on every pull request"
+R5 = "Post-merge tripwire on pushes to main"
 
 WF_PATH = KIT / ".github" / "workflows" / "openspec-validate.yml"
 
@@ -115,3 +116,15 @@ def test_tests_job_secret_free(wf):
     assert "token" not in steps_text.lower()          # public origins only
     # covered by the workflow ceiling, no job-level override
     assert "permissions" not in wf["jobs"]["tests"]
+
+
+# --- R5 ------------------------------------------------------------------
+@spec_case(CHANGE, R5, "Push to main runs both gates")
+def test_push_to_main_runs_both_gates(wf):
+    t = triggers(wf)
+    assert t["push"]["branches"] == ["main"]
+    assert set(wf["jobs"]) == {"validate", "tests"}   # same two jobs fire
+    # the tripwire adds a trigger, not a third job or a permissive scope:
+    # no all-branch push, and the PR gate keeps its merge-ref guarantee
+    # (pull_request trigger still present, scoped to main)
+    assert t["pull_request"]["branches"] == ["main"]

@@ -56,3 +56,14 @@ the suite clones the small kit repo a handful of times plus one bootstrap
 re-run, never auto-recover. setup-python pinned to @v6 (first node24
 major; @v5 still declares node20 — verified in action.yml, same
 annotation-avoidance law as checkout/setup-node v5).
+
+## Decision 13 — pull_request stays, push-to-main added as tripwire (owner decision 2026-11-22)
+Debated replacing pull_request with push-on-commit. Rejected: push checks
+the branch head only, losing the "green PR => green merge" merge-ref
+guarantee; open-PR branches would double-fire (PR number and ref are
+separate concurrency groups); fork PRs would get no run at all; and
+required-check configuration gets fragile. Adopted instead: keep
+pull_request + workflow_dispatch authoritative, add push: branches [main]
+so whatever lands (merge, admin override, direct commit) is recorded by
+the same two jobs. No duplication: pre-merge branch pushes never touch
+main. First natural firing is the merge of this very change.

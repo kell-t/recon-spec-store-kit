@@ -25,3 +25,6 @@
 - [x] second gate: `tests` job runs the spec-mapped pytest suite
       (full tier) on PRs + dispatch, secret-free — spec requirement
       "Requirements conformity tests run on every pull request" (2 scenarios)
+- [x] push-to-main tripwire trigger (requirement "Post-merge
+      tripwire on pushes to main", 1 scenario); pull_request stays
+      authoritative with its merge-ref guarantee

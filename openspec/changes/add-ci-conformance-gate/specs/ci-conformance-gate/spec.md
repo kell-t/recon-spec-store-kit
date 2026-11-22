@@ -69,3 +69,19 @@ branch protection can require it beside the validation check.
   public origins only
 - **AND** the workflow-level `contents: read` ceiling covers it with no
   job-level permission escalation
+
+### Requirement: Post-merge tripwire on pushes to main
+The workflow SHALL ALSO trigger on `push` to `main`, running both the
+`validate` and `tests` jobs on the pushed commit, so whatever actually
+lands on main — merged PR, admin override, or direct commit — is recorded
+in checks. The pull-request gate remains the authoritative merge control;
+the tripwire never gates a merge.
+
+#### Scenario: Push to main runs both gates
+- **WHEN** a commit lands on `main` (merged PR or direct push)
+- **THEN** the same `validate` and `tests` jobs run against the pushed
+  commit
+- **AND** the run records main's health after the fact rather than
+  blocking anything
+- **AND** the pull-request trigger keeps its merge-ref guarantee
+  independently

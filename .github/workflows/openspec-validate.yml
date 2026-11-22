@@ -8,6 +8,10 @@ name: openspec-validate
 on:
   pull_request:
     branches: [main]
+  push:
+    # Post-merge tripwire: verify what actually lands on main (advisory
+    # record of health; the PR gate stays the authoritative merge control).
+    branches: [main]
   workflow_dispatch:
 
 permissions:
