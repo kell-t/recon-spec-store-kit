@@ -38,6 +38,18 @@ jobs:
         run: npm install -g @fission-ai/openspec@1.16.1
       - name: strict validate
         run: openspec validate --all --strict --no-interactive
+      - name: simulate archive
+        # Ephemeral-checkout merge rehearsal: archive validates the specs
+        # it produces by default, so this fails the PR if any open delta
+        # cannot merge cleanly into the living specs. Nothing is pushed;
+        # the authoritative archive stays agent-side post-merge.
+        run: |
+          for d in openspec/changes/*/; do
+            id="$(basename "$d")"
+            [ -d "$d" ] || continue
+            [ "$id" = "archive" ] && continue
+            openspec archive "$id" --yes
+          done
   tests:
     # Requirements conformity: the spec-mapped pytest suite (tests/) runs
     # the full tier here — public GitHub read access only, no secrets.

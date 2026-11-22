@@ -18,6 +18,7 @@ R2 = "Pinned validator version"
 R3 = "Read-only, secret-free workflow"
 R4 = "Requirements conformity tests run on every pull request"
 R5 = "Post-merge tripwire on pushes to main"
+R6 = "CI pre-simulates archive on the throwaway checkout"
 
 WF_PATH = KIT / ".github" / "workflows" / "openspec-validate.yml"
 
@@ -135,3 +136,22 @@ def test_push_to_main_runs_both_gates(wf):
     # no all-branch push, and the PR gate keeps its merge-ref guarantee
     # (pull_request trigger still present, scoped to main)
     assert t["pull_request"]["branches"] == ["main"]
+
+
+# --- R6 ------------------------------------------------------------------
+@spec_case(CHANGE, R6, "Unmergeable delta turns the gate red")
+def test_archive_simulation_gates(wf):
+    vsteps = steps(wf)
+    names = [s.get("name", "") for s in vsteps]
+    assert "simulate archive" in names
+    # ORDER matters: rehearsal runs AFTER plain strict validation
+    assert names.index("simulate archive") > names.index("strict validate")
+    sim = vsteps[names.index("simulate archive")]["run"]
+    assert "openspec archive" in sim and "--yes" in sim
+    # archived folders must be skipped, else the loop re-archives history
+    assert "archive" in sim                      # the skip guard
+    # rehearsal only: the job never pushes, never mutates the remote
+    all_runs = "\n".join(s.get("run", "") for s in vsteps)
+    assert "git push" not in all_runs
+    # archive validates its produced specs by default; opting out is banned
+    assert "--no-validate" not in all_runs

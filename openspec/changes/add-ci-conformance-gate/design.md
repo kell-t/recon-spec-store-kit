@@ -67,3 +67,18 @@ pull_request + workflow_dispatch authoritative, add push: branches [main]
 so whatever lands (merge, admin override, direct commit) is recorded by
 the same two jobs. No duplication: pre-merge branch pushes never touch
 main. First natural firing is the merge of this very change.
+
+## Decision 14 — archive rehearsal inside the CI gate (owner request 2026-11-22)
+Measured on 1.16.1: `validate` previews archive collisions only as INFO
+(green either way); `archive` merges deltas into living specs and VALIDATES
+its produced specs by default (its `--no-validate` flag exists to opt out —
+banned in this workflow), refuses unmergeable deltas atomically with exit 1
+("Aborted. No files were changed."), and warns pre-apply on strict issues
+like a too-brief Purpose. Therefore a third manual `validate` post-archive
+is redundant; the missing CI coverage was the MERGE itself. The `validate`
+job now rehearses `openspec archive <id> --yes` per open change on the
+ephemeral runner checkout: unmergeable or unsound-result deltas fail the PR
+before merge; the authoritative archive remains the agent-side post-merge
+act (canonical flow untouched). Loop is alphabetical; stacked dependent
+deltas (one MODIFIED against another unmerged delta's creation) could
+sequence-red — accepted, honest, resolvable by merging order.

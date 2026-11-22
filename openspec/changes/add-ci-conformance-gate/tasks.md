@@ -28,3 +28,6 @@
 - [x] push-to-main tripwire trigger (requirement "Post-merge
       tripwire on pushes to main", 1 scenario); pull_request stays
       authoritative with its merge-ref guarantee
+- [x] archive rehearsal step in the validate job (requirement
+      "CI pre-simulates archive on the throwaway checkout", 1 scenario);
+      --no-validate banned by test
