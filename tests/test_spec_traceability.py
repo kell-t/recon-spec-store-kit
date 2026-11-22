@@ -12,23 +12,36 @@ from conftest import KIT
 from specmap import SPEC_CASES
 
 CHANGES = KIT / "openspec" / "changes"
+LIVING = KIT / "openspec" / "specs"
+LIVING_PREFIX = "spec:"  # claim source once a change has been archived
 
 REQ_MARK = "### Requirement: "
 SCN_MARK = "#### Scenario: "
 
 
 def parsed_scenarios():
-    """{(change_dir, requirement_title): [scenario_title, ...]}"""
+    """{(source, requirement_title): [scenario_title, ...]}
+
+    While a change is open its scenarios live in
+    `openspec/changes/<change>/specs/<cap>/spec.md` (source = change dir).
+    After `openspec archive` they live in `openspec/specs/<cap>/spec.md`
+    (source = "spec:<cap>"); tests flip their CHANGE constant accordingly
+    as a post-merge task — the stale-claim test names every file that still
+    points at the archived change dir.
+    """
+    roots = [(p, p.relative_to(CHANGES).parts[0])
+             for p in sorted(CHANGES.glob("*/specs/*/spec.md"))]
+    roots += [(p, LIVING_PREFIX + p.parent.name)
+              for p in sorted(LIVING.glob("*/spec.md"))]
     out = {}
-    for md in sorted(CHANGES.glob("*/specs/*/spec.md")):
-        change = md.relative_to(CHANGES).parts[0]
+    for md, source in roots:
         req = None
         for line in md.read_text().splitlines():
             if line.startswith(REQ_MARK):
                 req = line[len(REQ_MARK):].strip()
             elif line.startswith(SCN_MARK):
                 assert req, f"{md}: scenario before any requirement"
-                out.setdefault((change, req), []).append(
+                out.setdefault((source, req), []).append(
                     line[len(SCN_MARK):].strip())
     return out
 
