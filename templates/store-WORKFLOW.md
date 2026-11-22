@@ -12,6 +12,11 @@ cluster WORKFLOW.md; this file is repo-local and more specific.
   persistent cache (`sync_repo.py` fetches the target branch and opens the
   worktree named after it; a fresh clone is corrupt-cache recovery only,
   `--rebuild`); never trust pin line numbers blindly.
+- If `sync_repo.py` prints `MOVE_NOTICE=<url>`, surface it to the owner
+  verbatim — it is advisory only and the tool never acts on it. A source
+  move is remediated solely on the owner's instruction via
+  `--rebuild --relocate <new-url>`, after which the store's recorded
+  source URL is updated and a ledger line recorded.
 
 ## License tiers (see kit LICENSE-TIERING.md)
 - `recon/LICENSE` = MIT (process IP).

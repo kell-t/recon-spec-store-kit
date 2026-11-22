@@ -144,6 +144,27 @@
     dotted config silently but the binary contains no such code path —
     pointers stayed absolute with it set; never set it globally).
 
+11. **Source identity and move notices (owner ruling, 2026-11-22).**
+    The recorded `origin` URL is treated as source identity: never
+    rewritten silently; a `--rebuild` URL that differs from it refuses
+    (exit 3) unless `--relocate` is deliberately passed alongside — the
+    F1 guarantee (a typo can never consume a healthy cache) survives
+    because skipping the guard is itself an explicit, rare act. Measured
+    justification for a dedicated channel: after a repo move GitHub
+    answers git traffic on the OLD slug with 200 + correct content and
+    zero signaling (packet-traced), so no passive detection exists on
+    the transport; the `This repository moved` stderr notice is
+    historical (push-era reports; absent from current read paths) and is
+    kept only as a free regex on already-captured stderr. The live
+    signal is GitHub's redirect table itself (web HEAD / REST 301 ->
+    canonical location), probed once per sync. The notice channel is
+    advisory BY CONSTRUCTION: print `MOVE_NOTICE=<url>`, probe failures
+    silent, exit codes untouched — provenance decisions belong to the
+    owner (`--relocate`), never to inference. Slug-RECLAIM after a move
+    is not this channel's job (alias gone, same slug answers 200): the
+    strict pin law catches it (tag resolves to a different SHA -> exit
+    2, checkout untouched).
+
 ## Notes (not requirements)
 - Scope note (owner, 2026-11-21): the kit's openspec folder intentionally
   tracks ONLY this change's requirements for now. Formally specifying the

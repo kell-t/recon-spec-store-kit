@@ -8,9 +8,9 @@ Give every spec store a single persistent, git-ignored bare source clone (`.repo
 Each store SHALL keep exactly one ACTIVE source clone — the clone used for
 all work on the spec store — at `<store>/.repo`, ignored by the store repo's
 git; workflows needing the source at the pin SHALL use that clone and SHALL
-NOT create duplicate clones, delete-and-reclone (the recovery requirement
-below is the exception), or check the source out to any path other than that
-clone's named worktrees, inside or outside the store.
+NOT create duplicate clones, delete-and-reclone (the recovery and relocation
+requirements below are the exception), or check the source out to any path
+other than that clone's named worktrees, inside or outside the store.
 
 #### Scenario: Cache created on first use
 - **WHEN** `<store>/.repo` does not exist
@@ -82,11 +82,11 @@ them.
 ### Requirement: Re-cloning only as recovery with a `.repo-old` undo slot
 Deleting and re-creating `<store>/.repo` SHOULD be reserved for manual
 recovery of a locally confirmed corrupted clone (`git fsck` failure,
-unreadable refs, index damage); when performed, it SHALL first rename the
-old cache to `<store>/.repo-old` — replacing any existing `.repo-old` —
-and only then clone fresh. Work on the spec store SHALL ignore
-`.repo-old`. Authentication or server errors (401/403, rate limits, 5xx,
-timeouts) SHALL NOT trigger recovery.
+unreadable refs, index damage) or owner-directed relocation (below); when
+performed, it SHALL first rename the old cache to `<store>/.repo-old` —
+replacing any existing `.repo-old` — and only then clone fresh. Work on
+the spec store SHALL ignore `.repo-old`. Authentication or server errors
+(401/403, rate limits, 5xx, timeouts) SHALL NOT trigger recovery.
 
 #### Scenario: Transient failure preserves the cache
 - **WHEN** a sync fails with an authentication, rate-limit, or server error
@@ -112,3 +112,39 @@ timeouts) SHALL NOT trigger recovery.
   place
 - **AND** the slot holds only the most recent previous cache
 - **AND** no store work ever reads it
+
+### Requirement: Source identity changes are explicit and owner-directed
+The cache's recorded `origin` URL is its source identity: tooling SHALL NOT
+rewrite it silently, and `--rebuild` SHALL refuse (exit 3) a URL differing
+from the recorded origin unless `--relocate` is deliberately passed with it.
+Relocation reuses the `.repo-old` undo mechanics of corruption recovery.
+Move detection SHALL be advisory only: it SHALL NOT rewrite `origin`,
+trigger recovery, or change the sync result.
+
+#### Scenario: Relocation refused without the deliberate flag
+- **WHEN** `--rebuild <url>` runs while `<url>` differs from the recorded
+  origin and `--relocate` is absent
+- **THEN** the tool exits 3 and touches nothing — a typo can never consume
+  a healthy cache
+
+#### Scenario: Relocation is owner-directed
+- **WHEN** `sync_repo.py --rebuild --relocate <new-url>` runs on the
+  owner's instruction
+- **THEN** the current cache moves to `.repo-old` (the slot rolls) before
+  the fresh clone from `<new-url>`
+- **AND** the agent updates the store's recorded source URL and records a
+  ledger line
+
+#### Scenario: Move notice is advisory
+- **WHEN** post-fetch move detection (GitHub redirect-table probe, or a
+  `This repository moved` notice on fetch stderr) resolves the recorded
+  slug to a different canonical repository
+- **THEN** the tool prints a `MOVE_NOTICE=<canonical-url>` line for the
+  agent to surface to the owner
+- **AND** nothing changes: `origin` is not rewritten, recovery is not
+  triggered, and the sync result is unaffected
+
+#### Scenario: Probe failure is silent
+- **WHEN** move detection cannot run (offline, rate-limited, non-GitHub
+  origin)
+- **THEN** the sync completes normally with neither notice nor error
