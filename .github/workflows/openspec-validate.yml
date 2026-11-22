@@ -29,3 +29,18 @@ jobs:
         run: npm install -g @fission-ai/openspec@1.16.1
       - name: strict validate
         run: openspec validate --all --strict --no-interactive
+  tests:
+    # Requirements conformity: the spec-mapped pytest suite (tests/) runs
+    # the full tier here — public GitHub read access only, no secrets.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: install test dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -r tests/requirements.txt
+      - name: requirements conformity tests
+        run: .venv/bin/pytest tests

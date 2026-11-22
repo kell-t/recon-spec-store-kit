@@ -22,3 +22,6 @@
       `CHANGE = "spec:ci-conformance-gate"` (stale-claim meta test fails
       until done). Titles unchanged by archive; only the source constant
       flips. `pytest tests` + strict validate green in the same commit.
+- [x] second gate: `tests` job runs the spec-mapped pytest suite
+      (full tier) on PRs + dispatch, secret-free — spec requirement
+      "Requirements conformity tests run on every pull request" (2 scenarios)

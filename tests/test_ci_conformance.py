@@ -16,6 +16,7 @@ CHANGE = "add-ci-conformance-gate"
 R1 = "Strict conformance check on every pull request"
 R2 = "Pinned validator version"
 R3 = "Read-only, secret-free workflow"
+R4 = "Requirements conformity tests run on every pull request"
 
 WF_PATH = KIT / ".github" / "workflows" / "openspec-validate.yml"
 
@@ -88,3 +89,29 @@ def test_least_privilege_audit(wf):
     for job in wf["jobs"].values():
         assert "permissions" not in job or \
             job["permissions"] == {"contents": "read"}
+
+
+# --- R4 ------------------------------------------------------------------
+@spec_case(CHANGE, R4, "Tests job runs both gates green")
+def test_tests_job_runs_both_gates(wf):
+    assert set(wf["jobs"]) == {"validate", "tests"}   # two independent gates
+    tj = wf["jobs"]["tests"]
+    assert tj["runs-on"] == "ubuntu-latest"
+    runs = "\n".join(s.get("run", "") for s in tj["steps"])
+    assert "python -m venv" in runs
+    assert "pip install -r tests/requirements.txt" in runs
+    assert re.search(r"pytest tests\b", runs)
+    # full tier: the network tier must NOT be deselected in CI
+    assert "not network" not in runs
+    # both gates share the one trigger surface (PR to main + dispatch)
+    t = triggers(wf)
+    assert "pull_request" in t and "workflow_dispatch" in t
+
+
+@spec_case(CHANGE, R4, "Tests job stays secret-free")
+def test_tests_job_secret_free(wf):
+    steps_text = "\n".join(str(s) for s in wf["jobs"]["tests"]["steps"])
+    assert "secrets." not in steps_text
+    assert "token" not in steps_text.lower()          # public origins only
+    # covered by the workflow ceiling, no job-level override
+    assert "permissions" not in wf["jobs"]["tests"]

@@ -43,3 +43,29 @@ expose credentials or write to the repo.
 - **WHEN** the workflow file is inspected
 - **THEN** `permissions` grants at most `contents: read`
 - **AND** no step reads `${{ secrets.* }}`
+
+### Requirement: Requirements conformity tests run on every pull request
+The workflow SHALL run the kit's `tests/` pytest suite in a dedicated
+`tests` job on every `pull_request` targeting `main` and on
+`workflow_dispatch`. The job SHALL provision a throwaway virtualenv from
+`tests/requirements.txt`, SHALL run the full suite with the network tier
+enabled (public GitHub read access is the only external dependency), and
+SHALL use no secrets or credentials, reporting under a stable job name so
+branch protection can require it beside the validation check.
+
+#### Scenario: Tests job runs both gates green
+- **WHEN** a pull request is opened or synchronized (or the workflow is
+  dispatched)
+- **THEN** the `validate` and `tests` jobs run independently under stable
+  names
+- **AND** `tests` provisions a virtualenv from `tests/requirements.txt`
+  and runs `pytest tests` with all tiers enabled
+- **AND** either job failing turns the PR red — structural soundness and
+  behavioral conformity are separate merge gates
+
+#### Scenario: Tests job stays secret-free
+- **WHEN** the `tests` job is inspected
+- **THEN** its steps reference no secrets and no credentials, cloning
+  public origins only
+- **AND** the workflow-level `contents: read` ceiling covers it with no
+  job-level permission escalation

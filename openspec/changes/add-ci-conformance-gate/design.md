@@ -44,3 +44,15 @@
 - Branch protection (required check `validate (ubuntu-latest)`) is a
   GitHub-side owner action post-merge; the workflow works without it
   (advisory checks).
+
+## Decision 12 — tests job: full tier in CI, public read only (owner request 2026-11-22)
+The suite's @network tier exists because blobless lazy fetches need real
+GitHub origins; CI runners have that by default. All clones are anonymous
+HTTPS of public repos, so the job needs no secrets — the least-privilege
+ceiling extends unchanged. Cost: one standard runner minute (~1-2 min wall
+for the suite). Risk accepted: anonymous git rate limits per runner IP —
+the suite clones the small kit repo a handful of times plus one bootstrap
+(blobless) per run; failures here surface as honest red, retriable via
+re-run, never auto-recover. setup-python pinned to @v6 (first node24
+major; @v5 still declares node20 — verified in action.yml, same
+annotation-avoidance law as checkout/setup-node v5).
