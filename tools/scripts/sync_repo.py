@@ -21,7 +21,7 @@ touches nothing then.
 
 Usage:
   sync_repo.py <source-url> [--ref <tag|sha|branch>] [--wt NAME]
-               [--dest DIR] [--rebuild]
+               [--dest DIR] [--rebuild [--relocate]]
 
 --dest defaults to <store>/.repo (store root auto-detected like the other
 kit scripts: from this file's location, override env RECON_STORE).
@@ -52,6 +52,18 @@ Behavior:
   - --rebuild replaces the whole directory at --dest, including a husk
     without git metadata (clone killed before init completed), with the
     rename into the `.repo-old` slot.
+  - Source identity is explicit: `origin` is never silently rewritten. A
+    cache whose origin differs from the requested URL refuses (exit 3),
+    refresh or rebuild alike; only a deliberate `--relocate` (valid only
+    with --rebuild) bypasses the guard for an owner-instructed upstream
+    move, still through the undo slot.
+  - Move notices are ADVISORY: after a successful fetch the tool checks
+    GitHub's redirect table (HEAD web probe; disable with
+    RECON_MOVE_PROBE=0) and scans fetch stderr for GitHub's "This
+    repository moved" notice; either hit prints `MOVE_NOTICE=<url>` for
+    the agent to surface to the owner. It never rewrites origin, never
+    triggers recovery, never changes the exit code; a probe that cannot
+    run (offline, rate limit, non-GitHub origin) stays silent.
 
 Prints machine-readable tail lines for ledger capture:
   DEST=<abs worktree path>  CACHE=<abs cache path>  HEAD=<full sha>
@@ -61,9 +73,17 @@ Exit codes: 0 ok | 2 ref not found | 3 remote mismatch | 4 usage/env error
 """
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
+from urllib import error as urlerror
+from urllib import request as urlrequest
+
+
+MOVED_RE = re.compile(
+    r"This repository moved\. Please use the new location:\s*"
+    r"(?:remote:\s*)?(\S+)")
 
 
 class ArgParser(argparse.ArgumentParser):
@@ -83,14 +103,60 @@ def store_root() -> str:
         return os.getcwd()
 
 
+LAST_STDERR = ""
+
+
 def git(args, cwd=None, check=True):
+    global LAST_STDERR
     r = subprocess.run(["git"] + args, cwd=cwd,
                        capture_output=True, text=True)
+    LAST_STDERR = r.stderr or ""
     if check and r.returncode != 0:
         sys.stderr.write(f"git {' '.join(args)} failed: "
                          f"{r.stderr.strip() or r.stdout.strip()}\n")
         raise SystemExit(4)
     return r.stdout.strip()
+
+
+def github_slug(url):
+    """owner/repo for a GitHub URL (https or scp-form ssh); else None."""
+    m = re.match(r"(?:https?://github\.com[:/]|git@github\.com:)"
+                 r"([^/]+/[^/]+?)(?:\.git)?/?$", (url or ""), re.I)
+    return m.group(1) if m else None
+
+
+class _NoRedirect(urlrequest.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None  # surface 301s as HTTPError; do not follow
+
+
+def move_notice(source_url, fetch_stderr=""):
+    """ADVISORY ONLY (spec): canonical URL when GitHub's redirect table
+    knows the repo moved, else None. Two channels: GitHub's own
+    'This repository moved' notice on fetch stderr (historical; silent on
+    today's read paths), and a HEAD probe of the web endpoint (301 ->
+    canonical). Never raises, never acts — remediation is the owner's via
+    --rebuild --relocate. Set RECON_MOVE_PROBE=0 to skip the probe."""
+    m = MOVED_RE.search(fetch_stderr or "")
+    if m:
+        return m.group(1)
+    slug = github_slug(source_url)
+    if not slug or os.environ.get("RECON_MOVE_PROBE") == "0":
+        return None
+    try:
+        req = urlrequest.Request(f"https://github.com/{slug}",
+                                 method="HEAD",
+                                 headers={"User-Agent":
+                                          "recon-spec-store-kit"})
+        urlrequest.build_opener(_NoRedirect).open(req, timeout=10)
+    except urlerror.HTTPError as e:
+        if e.code in (301, 302, 307, 308):
+            new = github_slug(e.headers.get("Location", ""))
+            if new and new.lower() != slug.lower():
+                return e.headers.get("Location")
+    except Exception:
+        return None  # offline / rate-limited: the advisory stays silent
+    return None
 
 
 def is_cache(d):
@@ -182,7 +248,13 @@ def main():
                          " included) into the .repo-old undo slot (slot"
                          " rolls), then clone fresh; auth/server errors"
                          " are never grounds")
+    ap.add_argument("--relocate", action="store_true",
+                    help="with --rebuild only: owner-instructed source"
+                         " URL change; deliberately skips the"
+                         " origin-mismatch guard")
     args = ap.parse_args()
+    if args.relocate and not args.rebuild:
+        ap.error("--relocate requires --rebuild")
 
     dest = args.dest or os.path.join(store_root(), ".repo")
     legacy = os.path.join(os.path.dirname(os.path.abspath(dest))
@@ -191,7 +263,8 @@ def main():
 
     # Wrong-URL --rebuild is refused BEFORE touching anything: recovery
     # may never consume a healthy cache on an upstream/parameter problem.
-    if args.rebuild and is_cache(dest) \
+    # Only the deliberate --relocate (owner-instructed move) skips this.
+    if args.rebuild and not args.relocate and is_cache(dest) \
             and not url_eq(origin_url(dest), args.url):
         sys.stderr.write(
             f"{dest} origin '{origin_url(dest)}' != requested "
@@ -229,6 +302,15 @@ def main():
     # refresh first (requirement: cache up to date before work; and a fresh
     # ref is usually only known after fetch)
     git(["-C", dest, "fetch", "--prune", "--tags", "origin"])
+
+    # advisory move notice (never acts, never fails the sync)
+    notice = move_notice(args.url, LAST_STDERR)
+    if notice:
+        print(f"MOVE_NOTICE={notice}")
+        print("MOVE_ADVISORY: upstream source moved; origin untouched and"
+              " no recovery triggered — owner may direct"
+              " `--rebuild --relocate <new-url>` (update the recorded"
+              " source URL + ledger on doing so).")
 
     wt_exists = os.path.exists(os.path.join(wt, ".git"))
     if args.ref:
