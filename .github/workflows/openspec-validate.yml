@@ -50,6 +50,11 @@ jobs:
             [ "$id" = "archive" ] && continue
             openspec archive "$id" --yes
           done
+      - name: strict validate (post-rehearsal)
+        # Archive validates silently by default; --json shows merge totals
+        # but not per-spec validation. This explicit re-run makes the
+        # produced specs appear by name in the check output.
+        run: openspec validate --all --strict --no-interactive
   tests:
     # Requirements conformity: the spec-mapped pytest suite (tests/) runs
     # the full tier here — public GitHub read access only, no secrets.

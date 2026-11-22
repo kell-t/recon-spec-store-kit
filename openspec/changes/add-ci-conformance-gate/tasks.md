@@ -31,3 +31,6 @@
 - [x] archive rehearsal step in the validate job (requirement
       "CI pre-simulates archive on the throwaway checkout", 1 scenario);
       --no-validate banned by test
+- [x] explicit post-rehearsal strict validate step (scenario
+      "Post-rehearsal specs validated by name") — visibility law: silent
+      validation is unauditable in CI logs

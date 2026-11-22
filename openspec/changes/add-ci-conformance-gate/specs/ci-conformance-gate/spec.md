@@ -90,13 +90,19 @@ the tripwire never gates a merge.
 ### Requirement: CI pre-simulates archive on the throwaway checkout
 After strict validation, the `validate` job SHALL run
 `openspec archive <id> --yes` for every open change against the ephemeral
-CI checkout. Archive validates the specs it produces by default, so a
-refusal or failure SHALL fail the gate — an unmergeable delta can never
-reach `main`. The rehearsal SHALL NOT push; the authoritative archive
-remains the agent-side act after merge.
+CI checkout; a refusal or failure SHALL fail the gate. The job SHALL then
+re-run `openspec validate --all --strict` on the post-rehearsal tree so
+the produced specs are validated visibly, by name. The rehearsal SHALL
+NOT push; the authoritative archive remains the agent-side act after
+merge.
 
 #### Scenario: Unmergeable delta turns the gate red
 - **WHEN** an open change's delta would be refused at archive time
 - **THEN** the simulated archive exits non-zero and the PR check fails
 - **AND** nothing real changes: the checkout is ephemeral and the
   authoritative archive still happens agent-side after merge
+
+#### Scenario: Post-rehearsal specs validated by name
+- **WHEN** the archive rehearsals complete
+- **THEN** a final strict validation run lists every living spec,
+  including the ones the rehearsals just produced, in the check output

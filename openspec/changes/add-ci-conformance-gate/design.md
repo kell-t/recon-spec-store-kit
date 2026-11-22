@@ -82,3 +82,10 @@ before merge; the authoritative archive remains the agent-side post-merge
 act (canonical flow untouched). Loop is alphabetical; stacked dependent
 deltas (one MODIFIED against another unmerged delta's creation) could
 sequence-red — accepted, honest, resolvable by merging order.
+Owner addendum (same day): archive's internal validation is SILENT — the
+run log shows merge actions, and `--json` reports merge totals only, never
+per-spec validation. Implicit checks are unauditable from CI output, so an
+explicit `strict validate (post-rehearsal)` step is specified and asserted;
+cost is one validator run on a tree archive already merged. Redundancy
+accepted in favor of visibility: the check log must list the produced
+specs by name.

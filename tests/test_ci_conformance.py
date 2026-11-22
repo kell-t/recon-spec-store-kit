@@ -155,3 +155,17 @@ def test_archive_simulation_gates(wf):
     assert "git push" not in all_runs
     # archive validates its produced specs by default; opting out is banned
     assert "--no-validate" not in all_runs
+
+
+@spec_case(CHANGE, R6, "Post-rehearsal specs validated by name")
+def test_post_rehearsal_validation_by_name(wf):
+    # archive's internal validation is silent (and --json shows only merge
+    # totals), so a final explicit strict validate must exist AFTER the
+    # rehearsal step - its output lists every spec by name in the log
+    names = [s.get("name", "") for s in steps(wf)]
+    assert "strict validate (post-rehearsal)" in names
+    assert names.index("strict validate (post-rehearsal)") > \
+        names.index("simulate archive")
+    step = steps(wf)[names.index("strict validate (post-rehearsal)")]
+    assert step["run"].strip() == \
+        "openspec validate --all --strict --no-interactive"
