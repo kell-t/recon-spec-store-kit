@@ -15,11 +15,15 @@
       (no stack, no ordering hazard; mergeable True/clean at f61a6a0).
       The merge itself remains the owner's UI action.
 - [ ] post-merge (owner, GitHub UI): optional branch protection requiring
-      check `validate (ubuntu-latest)` on main — NOT DONE as of 2026-11-23;
-      current PAT cannot read protection state (403), owner UI action,
-      optional. (Note: check name is `validate` under the job's default
-      display; require both `validate` and `tests` if enforcing.)
-- [ ] follow-on (separate per-store task): replicate workflow to hermes-agent / gufo / tinytuya store repos, each deciding its own no-openspec guard — OUTSTANDING as of 2026-11-23; per the R7 archived-inclusive scan this box holds kit main RED until each store's guard decision lands.
+      check `validate (ubuntu-latest)` on main — RULESET `Default` ACTIVE
+      2026-11-23 (API readback /rulesets: deletion + non_fast_forward on
+      ~DEFAULT_BRANCH, no bypass): history/PIN integrity covered, force
+      pushes now mechanically impossible. STATUS CHECKS NOT YET REQUIRED —
+      merging red PRs still possible; owner decision pending on adding
+      required checks `validate` + `tests` (recommended). Keep
+      require-PR / require-signed / linear-history OFF: breaks cron
+      direct-pushes, unverified SSH signatures, merge-commit flow.
+- [x] follow-on (separate per-store task): replicate workflow to hermes-agent / gufo / tinytuya store repos, each deciding its own no-openspec guard — VOID BY OWNER RULING 2026-11-23: the gate workflow lives ONLY in spec-store-kit; store repos ingest the kit verbatim (fleet adoption 3/3 complete @ a1d23d3 — `.repo` caches, `recon/scripts/`, `recon/openspec/` propagated with empty-diff audits) and are not actively developed on. Replication was a mis-scoped obligation; nothing is owed, hence ticked with citation rather than deleted.
 
 ## Verification tests (owner request 2026-11-22 — no requirements changed)
 - [x] `tests/test_ci_conformance.py` — 13 scenario checks on the workflow
