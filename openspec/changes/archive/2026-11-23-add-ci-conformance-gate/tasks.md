@@ -37,11 +37,13 @@
       tests now cover both change-deltas on this branch.
 
 ## Post-merge: archive moves scenarios — amend test claims (owner, 2026-11-22)
-- [ ] After merge + `openspec archive add-ci-conformance-gate --yes`, flip
+- [x] After merge + `openspec archive add-ci-conformance-gate --yes`, flip
       `tests/test_ci_conformance.py` `CHANGE = "add-ci-conformance-gate"` ->
       `CHANGE = "spec:ci-conformance-gate"` (stale-claim meta test fails
       until done). Titles unchanged by archive; only the source constant
       flips. `pytest tests` + strict validate green in the same commit.
+      VERIFIED 2026-11-23: flipped in this amendment commit; archive ran as
+      fde43aa (this tasks.md lives under archive/2026-11-23-... because of it).
       (BOX DUTY, R7: the cron amendment commit ticks this and the other
       VERIFIED-completed boxes of this file; genuinely outstanding debt
       stays unchecked and keeps main red.)
