@@ -1,0 +1,48 @@
+name: post-merge status
+# R7 obligation gate, in its OWN file: GitHub renders any job-level
+# `if`-skipped job as a skipped check-run on PR pages, and a PR check
+# page must carry only the gates that actually apply. Workflow-level
+# triggers are the only mechanism that produces NO check at all for a
+# pull request — this file has no pull_request trigger, so PR pages
+# never see it, while main commits get a dedicated machine-readable
+# debt status (green main = nothing owed).
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: post-merge-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  post-merge:
+    # Main is green only when nothing is owed at that commit — no
+    # unarchived change, no unchecked tasks (archived included).
+    # PR branches legitimately carry open deltas and pending tasks,
+    # which is exactly why they are not judged here at all.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: post-merge status
+        run: |
+          set -uo pipefail
+          rc=0
+          shopt -s nullglob
+          for d in openspec/changes/*/; do
+            id="$(basename "$d")"
+            [ "$id" = "archive" ] && continue
+            echo "::error::unarchived change on main: $id (archive obligation open)"
+            rc=1
+          done
+          while IFS= read -r line; do
+            echo "::error::unchecked task: $line"
+            rc=1
+          done < <(grep -rn --include=tasks.md -E '^[[:space:]]*- \[ \]' openspec/changes/ || true)
+          if [ "$rc" -eq 0 ]; then
+            echo "post-merge status: no open changes, all tasks checked — main owes nothing"
+          fi
+          exit $rc

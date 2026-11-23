@@ -1,0 +1,73 @@
+name: openspec-validate
+# Deterministic conformance gate: parses the kit's openspec/ markdown and
+# enforces the strict rule table (references/openspec-validator-rules.md).
+# Structural soundness ONLY — content truth stays with the store gates and
+# the spec agent. Standard runner on a PUBLIC repo = free, no minute
+# accounting; never switch to a "larger runner" (billed even on public).
+
+on:
+  pull_request:
+    branches: [main]
+    # Explicit types: the bare default includes ALL activity types (edited,
+    # review_requested, ...) which re-ran the gate on title/body edits and
+    # cancelled in-flight runs via the concurrency group. Spec R1: opened or
+    # new commits — nothing else gates.
+    types: [opened, synchronize, reopened]
+  push:
+    # Post-merge tripwire: verify what actually lands on main (advisory
+    # record of health; the PR gate stays the authoritative merge control).
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openspec-validate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: install pinned validator
+        run: npm install -g @fission-ai/openspec@1.16.1
+      - name: strict validate
+        run: openspec validate --all --strict --no-interactive
+      - name: simulate archive
+        # Ephemeral-checkout merge rehearsal: archive validates the specs
+        # it produces by default, so this fails the PR if any open delta
+        # cannot merge cleanly into the living specs. Nothing is pushed;
+        # the authoritative archive stays agent-side post-merge.
+        run: |
+          for d in openspec/changes/*/; do
+            id="$(basename "$d")"
+            [ -d "$d" ] || continue
+            [ "$id" = "archive" ] && continue
+            openspec archive "$id" --yes
+          done
+      - name: strict validate (post-rehearsal)
+        # Archive validates silently by default; --json shows merge totals
+        # but not per-spec validation. This explicit re-run makes the
+        # produced specs appear by name in the check output.
+        run: openspec validate --all --strict --no-interactive
+
+  tests:
+    # Requirements conformity: the spec-mapped pytest suite (tests/) runs
+    # the full tier here — public GitHub read access only, no secrets.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: install test dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -r tests/requirements.txt
+      - name: requirements conformity tests
+        run: .venv/bin/pytest tests
