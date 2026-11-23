@@ -50,6 +50,13 @@ the monitor's archive/amendment duty therefore includes checking boxes
 VERIFIED done (never blind); (b) between a merge and its archive, main
 is intentionally red — that is the handoff signal, not an alarm; (c) the
 job is pure shell on the checkout (no node/openspec install needed).
+UPDATE (owner, 2026-11-23): the job moved to its OWN file
+`post-merge-status.yml` (push: main only). Measured on head 668b0d9: a
+job-level `if: github.event_name == 'push'` still renders as a SKIPPED
+check-run on every PR page — GitHub offers no job-level way to be
+invisible; only a file without a pull_request trigger produces no
+check at all. Cost accepted: two files; R3 audit now loops all
+workflow files.
 
 ## Notes (not requirements)
 - Merge latency for archive remains ≤1 daily pass unless the owner later

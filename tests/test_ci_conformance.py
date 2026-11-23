@@ -98,13 +98,22 @@ def test_least_privilege_audit(wf):
     for job in wf["jobs"].values():
         assert "permissions" not in job or \
             job["permissions"] == {"contents": "read"}
+    # the audit covers EVERY workflow file in the kit, incl. the
+    # obligation gate (post-merge-status.yml)
+    for path in sorted((KIT / ".github" / "workflows").glob("*.yml")):
+        assert path.name in {"openspec-validate.yml",
+                             "post-merge-status.yml"}
+        pw = yaml.safe_load(path.read_text())
+        assert pw["permissions"] == {"contents": "read"}, path.name
+        assert "${{ secrets." not in path.read_text(), path.name
 
 
 # --- R4 ------------------------------------------------------------------
 @spec_case(CHANGE, R4, "Tests job runs both gates green")
 def test_tests_job_runs_both_gates(wf):
-    # two PR gates; post-merge (R7) exists in the file but is main-only
-    assert set(wf["jobs"]) == {"validate", "tests", "post-merge"}
+    # two gates in the PR-facing file; the obligation gate is a separate
+    # file (post-merge-status.yml) with no pull_request trigger at all
+    assert set(wf["jobs"]) == {"validate", "tests"}
     tj = wf["jobs"]["tests"]
     assert tj["runs-on"] == "ubuntu-latest"
     runs = "\n".join(s.get("run", "") for s in tj["steps"])
@@ -132,9 +141,10 @@ def test_tests_job_secret_free(wf):
 def test_push_to_main_runs_both_gates(wf):
     t = triggers(wf)
     assert t["push"]["branches"] == ["main"]
-    # validate+tests fire on push too; post-merge (R7) is the third job,
-    # main-only, and carries the obligation signal rather than a gate pair
-    assert set(wf["jobs"]) == {"validate", "tests", "post-merge"}
+    # validate+tests fire on push too; the obligation gate is its own
+    # file (post-merge-status.yml), carrying debt status rather than a
+    # gate pair — and it never renders on PR pages
+    assert set(wf["jobs"]) == {"validate", "tests"}
     # the tripwire adds a trigger, not a third job or a permissive scope:
     # no all-branch push, and the PR gate keeps its merge-ref guarantee
     # (pull_request trigger still present, scoped to main)
@@ -177,9 +187,15 @@ def test_post_rehearsal_validation_by_name(wf):
 # --- R7 ------------------------------------------------------------------
 R7 = "Post-merge obligations are surfaced on main pushes"
 
+PM_PATH = KIT / ".github" / "workflows" / "post-merge-status.yml"
 
-def pm_run(wf):
-    return wf["jobs"]["post-merge"]["steps"][-1]["run"]
+
+def pm_wf():
+    return yaml.safe_load(PM_PATH.read_text())
+
+
+def pm_run(_wf=None):
+    return pm_wf()["jobs"]["post-merge"]["steps"][-1]["run"]
 
 
 @spec_case(CHANGE, R7, "Unarchived change turns main red")
@@ -207,8 +223,13 @@ def test_post_merge_green_says_owed_nothing(wf):
     assert "exit $rc" in run
 
 
-@spec_case(CHANGE, R7, "Pull requests are exempt from main obligations")
-def test_post_merge_pr_exempt(wf):
-    # a change branch legitimately carries an open delta + unchecked tasks;
-    # the obligation gate is main-push-only
-    assert wf["jobs"]["post-merge"]["if"] == "github.event_name == 'push'"
+@spec_case(CHANGE, R7, "Pull requests never see the obligation check")
+def test_post_merge_pr_invisible(wf):
+    # GitHub always renders job-level `if` skips as skipped check-runs;
+    # only workflow-level triggers produce NO check on PR pages. The
+    # obligation file must therefore have no pull_request trigger at all,
+    # and the PR-facing file must not carry the job.
+    pt = pm_wf().get("on", pm_wf().get(True))
+    assert "pull_request" not in pt
+    assert set(pt) == {"push"} and pt["push"]["branches"] == ["main"]
+    assert "post-merge" not in wf["jobs"]

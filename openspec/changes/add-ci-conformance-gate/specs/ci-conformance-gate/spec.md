@@ -108,13 +108,13 @@ merge.
   including the ones the rehearsals just produced, in the check output
 
 ### Requirement: Post-merge obligations are surfaced on main pushes
-On pushes to `main` the workflow SHALL run a `post-merge status` job that
-fails while the repository still owes post-merge work at that commit: a
-change directory outside `openspec/changes/archive/`, or an unchecked
-task item in any `tasks.md` under `openspec/changes/`, archived
-included. A green main commit SHALL therefore mean every obligation of
-that commit — archiving and post-archive amendments included — is
-closed, making the check status alone a machine-readable work signal.
+On pushes to `main` the workflow SHALL run a `post-merge status` job —
+in a workflow file triggered only by pushes to `main` — that fails
+while any change directory sits outside `openspec/changes/archive/` or
+any `tasks.md` under `openspec/changes/` (archived included) carries an
+unchecked task item. A green main commit SHALL therefore mean every
+obligation of that commit is closed, the check status alone being a
+machine-readable work signal.
 
 #### Scenario: Unarchived change turns main red
 - **WHEN** a push lands on `main` while a change directory sits outside
@@ -135,9 +135,11 @@ closed, making the check status alone a machine-readable work signal.
 - **THEN** the post-merge status job passes
 - **AND** states that main owes nothing
 
-#### Scenario: Pull requests are exempt from main obligations
-- **WHEN** the workflow event is a pull request
-- **THEN** the post-merge status job does not run
+#### Scenario: Pull requests never see the obligation check
+- **WHEN** a pull request is opened or synchronized
+- **THEN** no post-merge check appears on the pull request's checks page
+  at all — the obligation job lives in its own workflow file that has no
+  pull-request trigger
 - **AND** the branch is judged only by validation, tests, and the
   archive rehearsal, since a change branch legitimately carries an
   open delta and unchecked post-merge tasks

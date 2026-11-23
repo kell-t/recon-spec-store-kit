@@ -40,3 +40,8 @@
       included) holds main red; green main = nothing owed; PR branches
       exempt. Monitor agent reads this check as its work signal and
       checks off VERIFIED-done tasks in the commit that completes them.
+- [x] obligation gate relocated to its own file post-merge-status.yml
+      (scenario retitled "Pull requests never see the obligation check"):
+      job-level `if` renders skipped checks on PR pages (measured
+      668b0d9); only absence of a pull_request trigger hides it fully.
+      R3 least-privilege audit extended to every workflow file.

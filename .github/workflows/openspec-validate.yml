@@ -55,34 +55,6 @@ jobs:
         # but not per-spec validation. This explicit re-run makes the
         # produced specs appear by name in the check output.
         run: openspec validate --all --strict --no-interactive
-  post-merge:
-    # R7: main is green only when nothing is owed at that commit — no
-    # unarchived change, no unchecked tasks (archived included). The
-    # check status is the monitor agent's work signal; PR branches are
-    # exempt (they legitimately carry open deltas and pending tasks).
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - name: post-merge status
-        run: |
-          set -uo pipefail
-          rc=0
-          shopt -s nullglob
-          for d in openspec/changes/*/; do
-            id="$(basename "$d")"
-            [ "$id" = "archive" ] && continue
-            echo "::error::unarchived change on main: $id (archive obligation open)"
-            rc=1
-          done
-          while IFS= read -r line; do
-            echo "::error::unchecked task: $line"
-            rc=1
-          done < <(grep -rn --include=tasks.md -E '^[[:space:]]*- \[ \]' openspec/changes/ || true)
-          if [ "$rc" -eq 0 ]; then
-            echo "post-merge status: no open changes, all tasks checked — main owes nothing"
-          fi
-          exit $rc
 
   tests:
     # Requirements conformity: the spec-mapped pytest suite (tests/) runs
