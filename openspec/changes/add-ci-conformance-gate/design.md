@@ -10,18 +10,23 @@
    remains the store gates' (anchor/cite auditors, also deterministic) and
    the spec agent's job. This note exists so no future reader mistakes a
    green check for a validated model.
-2. **Archive stays agent-side.** `openspec archive` is a deterministic CLI
-   step (move `changes/<id>/` → `changes/archive/`, apply deltas), but the
-   actor may NOT be CI: a workflow committing to main is authored by
-   `github-actions[bot]` or by an unsigned PAT identity — the latter renders
-   **Unverified** on GitHub, and bot authorship violates the owner's
-   signed-kell-t authorship law even when GitHub stamps its own bot
-   signature. Copying the SSH signing key into Actions secrets would
-   restore "Verified" but hands the key to every workflow run in the repo —
-   rejected. Therefore: CI gates; the spec agent archives (daily pass,
-   on-merge request, or a future webhook-wake), with signed kell-t
-   authorship plus the store propagation and ledger lines only an agent
-   may perform.
+2. **Archive stays agent-side — chain choice, bar relaxed.**
+   `openspec archive` is a deterministic CLI step (move `changes/<id>/` →
+   `changes/archive/`, apply deltas), but the actor today is the spec
+   agent. Original bar (2026-11-10 law): a workflow committing to main is
+   authored by `github-actions[bot]` or an unsigned PAT identity — the
+   latter renders **Unverified**, and bot authorship failed the
+   signed-kell-t law. RELAXED by owner ruling 2026-11-23: a
+   GitHub-verified `github-actions[bot]` commit is acceptable — the
+   invariant is the Verified stamp, not human authorship. Archive
+   nonetheless REMAINS an agent act, now for positive reasons: the same
+   commit carries duties CI cannot perform (store propagation, ledger
+   lines, verified box ticks against pod-local state), and the daily
+   cron chain is built. A CI-author bot is henceforth a PERMITTED option
+   if merge-time archiving is ever wanted (requires deliberately scoping
+   that workflow `contents: write`). Copying the SSH signing key into
+   Actions secrets remains rejected on custody grounds — every workflow
+   run could read it.
 3. **Pinned validator version.** `@fission-ai/openspec@1.16.1` — the
    conformance rules in `references/openspec-validator-rules.md` are
    written and battle-tested against 1.16.x. An unpinned install lets
