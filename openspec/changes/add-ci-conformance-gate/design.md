@@ -59,6 +59,11 @@ check at all. Cost accepted: two files; R3 audit now loops all
 workflow files.
 
 ## Notes (not requirements)
+- Repo settings mirror (NOT version-controlled here): ruleset `Default`
+  requires contexts `validate` + `tests` strictly. These names MUST stay
+  in lockstep with the job ids audited by R1 — renaming a job requires
+  updating the ruleset in the same change, or merges block forever on a
+  check that never arrives.
 - Merge latency for archive remains ≤1 daily pass unless the owner later
   wires the Hermes webhook route (planned separately; HMAC route bound to
   the spec profile).

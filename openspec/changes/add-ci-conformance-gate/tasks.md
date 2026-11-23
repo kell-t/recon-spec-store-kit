@@ -14,15 +14,17 @@
       base was deleted, this #9 was rebuilt directly onto post-#7 main
       (no stack, no ordering hazard; mergeable True/clean at f61a6a0).
       The merge itself remains the owner's UI action.
-- [ ] post-merge (owner, GitHub UI): optional branch protection requiring
-      check `validate (ubuntu-latest)` on main — RULESET `Default` ACTIVE
-      2026-11-23 (API readback /rulesets: deletion + non_fast_forward on
-      ~DEFAULT_BRANCH, no bypass): history/PIN integrity covered, force
-      pushes now mechanically impossible. STATUS CHECKS NOT YET REQUIRED —
-      merging red PRs still possible; owner decision pending on adding
-      required checks `validate` + `tests` (recommended). Keep
-      require-PR / require-signed / linear-history OFF: breaks cron
-      direct-pushes, unverified SSH signatures, merge-commit flow.
+- [x] post-merge (owner, GitHub UI): optional branch protection requiring
+      check `validate (ubuntu-latest)` on main — COMPLETE 2026-11-23,
+      ruleset `Default` ACTIVE (API readback /rulesets): deletion +
+      non_fast_forward + required_status_checks with
+      strict_required_status_checks_policy=true and contexts
+      [validate, tests] (GitHub Actions), no bypass actors. Red PRs and
+      stale-base PRs can no longer merge; force-push/deletion of main
+      impossible; cron direct-push path unaffected (merge-gating only).
+      Keep require-PR / require-signed / linear-history / restrict-updates
+      OFF: breaks cron direct-pushes, unverified SSH signatures,
+      merge-commit flow, and fast-forward main updates respectively.
 - [x] follow-on (separate per-store task): replicate workflow to hermes-agent / gufo / tinytuya store repos, each deciding its own no-openspec guard — VOID BY OWNER RULING 2026-11-23: the gate workflow lives ONLY in spec-store-kit; store repos ingest the kit verbatim (fleet adoption 3/3 complete @ a1d23d3 — `.repo` caches, `recon/scripts/`, `recon/openspec/` propagated with empty-diff audits) and are not actively developed on. Replication was a mis-scoped obligation; nothing is owed, hence ticked with citation rather than deleted.
 
 ## Verification tests (owner request 2026-11-22 — no requirements changed)
