@@ -13,7 +13,7 @@ not edit, add, or delete any file inside it, including this one. Refresh
 means replacing the WHOLE folder verbatim from the kit tree and recording
 the kit version + copy date in the store ledger — never touching the copy.
 
-PIN: kit main @ 52b1cda (2026-11-22). Maintained KIT-side: the kit updates
+PIN: kit main @ fde43aa (2026-11-23), archive commit of add-ci-conformance-gate (PR #9). Maintained KIT-side: the kit updates
 this line at every `openspec archive` (a follow-up one-line commit naming
 the archive commit), so a copy taken from a fresh main always carries a
 current reference. A stale PIN relative to the kit's archive history means

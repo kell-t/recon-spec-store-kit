@@ -12,7 +12,7 @@ import yaml
 from conftest import KIT
 from specmap import spec_case
 
-CHANGE = "add-ci-conformance-gate"
+CHANGE = "spec:ci-conformance-gate"
 R1 = "Strict conformance check on every pull request"
 R2 = "Pinned validator version"
 R3 = "Read-only, secret-free workflow"
