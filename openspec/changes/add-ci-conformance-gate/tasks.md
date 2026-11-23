@@ -4,17 +4,31 @@
 - [x] capability spec `ci-conformance-gate` + delta in this change
 - [x] README tree entry for `.github/workflows/`
 - [x] `openspec validate --all --strict` green at kit root (incl. this change)
-- [ ] verify the check actually fires on this PR via API check-runs (not just YAML review)
-- [ ] post-merge #7-then-#8 ordering (owner): #7 first, then update this branch onto main with a MERGE commit (no force-push), then merge
-- [ ] post-merge (owner, GitHub UI): optional branch protection requiring check `validate (ubuntu-latest)` on main
-- [ ] follow-on (separate per-store task): replicate workflow to hermes-agent / gufo / tinytuya store repos, each deciding its own no-openspec guard
+- [x] verify the check actually fires on this PR via API check-runs (not
+      just YAML review) — VERIFIED 2026-11-23: `/commits/<sha>/check-runs`
+      readback on heads 2fbd02d/668b0d9/f61a6a0 shows the gate running
+      (validate+tests success); f61a6a0 = exactly 2 runs, zero skipped.
+- [x] post-merge #7-then-#8 ordering (owner): #7 first, then update this
+      branch onto main with a MERGE commit (no force-push), then merge —
+      SUPERSEDED 2026-11-23: #7 landed (32aa3ff), #8 auto-closed when its
+      base was deleted, this #9 was rebuilt directly onto post-#7 main
+      (no stack, no ordering hazard; mergeable True/clean at f61a6a0).
+      The merge itself remains the owner's UI action.
+- [ ] post-merge (owner, GitHub UI): optional branch protection requiring
+      check `validate (ubuntu-latest)` on main — NOT DONE as of 2026-11-23;
+      current PAT cannot read protection state (403), owner UI action,
+      optional. (Note: check name is `validate` under the job's default
+      display; require both `validate` and `tests` if enforcing.)
+- [ ] follow-on (separate per-store task): replicate workflow to hermes-agent / gufo / tinytuya store repos, each deciding its own no-openspec guard — OUTSTANDING as of 2026-11-23; per the R7 archived-inclusive scan this box holds kit main RED until each store's guard decision lands.
 
 ## Verification tests (owner request 2026-11-22 — no requirements changed)
-- [x] `tests/test_ci_conformance.py` — 4 scenario checks on the workflow
-      YAML (PR trigger + merge-ref + stable name, dispatch, exact pin vs the
-      generation documented in references/openspec-validator-rules.md,
-      permissions + secrets audit). Offline tier; the traceability meta tests
-      now cover both change-deltas on this branch.
+- [x] `tests/test_ci_conformance.py` — 13 scenario checks on the workflow
+      YAML files (PR trigger + merge-ref + stable name, dispatch, exact
+      pin vs the generation documented in references/openspec-validator-rules.md,
+      permissions + secrets audit across EVERY workflow file, second gate,
+      tripwire, archive rehearsal, post-rehearsal visibility, obligation
+      gate incl. PR-invisibility). Offline tier; the traceability meta
+      tests now cover both change-deltas on this branch.
 
 ## Post-merge: archive moves scenarios — amend test claims (owner, 2026-11-22)
 - [ ] After merge + `openspec archive add-ci-conformance-gate --yes`, flip
@@ -22,6 +36,9 @@
       `CHANGE = "spec:ci-conformance-gate"` (stale-claim meta test fails
       until done). Titles unchanged by archive; only the source constant
       flips. `pytest tests` + strict validate green in the same commit.
+      (BOX DUTY, R7: the cron amendment commit ticks this and the other
+      VERIFIED-completed boxes of this file; genuinely outstanding debt
+      stays unchecked and keeps main red.)
 - [x] second gate: `tests` job runs the spec-mapped pytest suite
       (full tier) on PRs + dispatch, secret-free — spec requirement
       "Requirements conformity tests run on every pull request" (2 scenarios)
